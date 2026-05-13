@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Forge + ESXi 9.1: What Actually Broke and Why | Brandon Quantz</title>
+    <meta
+      name="description"
+      content="Six failure modes from getting ESXi 9.1 to deploy reliably through Forge, including misleading job status, kickstart changes, Redfish boot-once behavior, and persistent service configuration."
+    />
+    <link
+      rel="canonical"
+      href="https://theinfrastructureshift.com/blog/forge-esxi-91-what-broke-and-why/"
+    />
+    <link rel="stylesheet" href="../../styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <nav class="nav" aria-label="Main navigation">
+          <a class="brand" href="../../">
+            <strong>Brandon Quantz</strong>
+            <span>Product architecture notes</span>
+          </a>
+          <div class="nav-links">
+            <a href="../../">Home</a>
+            <a href="mailto:bquantz@gmail.com">Contact</a>
+          </div>
+        </nav>
+      </header>
+
+      <main>
+        <header class="article-header">
+          <p class="eyebrow">Forge · Part 2</p>
+          <h1>Forge + ESXi 9.1: What Actually Broke and Why</h1>
+          <p class="article-summary">
+            Getting ESXi 9.1 to deploy reliably from Forge required working
+            through six different failure modes. The common pattern was not that
+            everything failed loudly. It was that almost every layer produced a
+            misleading success signal.
+          </p>
+          <div class="hero-meta">
+            <span>By Brandon Quantz</span>
+            <span>May 2026</span>
+          </div>
+        </header>
+
+        <article class="article">
+          <p class="disclaimer">
+            Forge is an application I am actively developing. Lab-specific
+            addresses, hostnames, and domains have been generalized; the failure
+            modes and implementation lessons are the point.
+          </p>
+
+          <h2>The pattern</h2>
+          <p>
+            ESXi 9.1 provisioning did not fail in one clean place. It failed in
+            layers. The job engine reported success when the host was not
+            configured. Kickstart syntax looked valid while ESXi ignored the
+            command that mattered. Redfish calls returned HTTP 200 while the
+            server booted the old operating system. Connectivity checks completed
+            while testing from the wrong network.
+          </p>
+          <p>
+            That is exactly why I am building Forge as a job-driven system with
+            logs, state, and outcome checks. Bare-metal automation cannot trust a
+            happy API response. It has to verify what happened on the machine.
+          </p>
+
+          <h2>1. Jobs reported complete when they were not</h2>
+          <p>
+            The first failure was self-inflicted. Jobs showed <code>complete</code>
+            in the UI even though the log said SSH was unavailable and
+            post-install configuration had been skipped.
+          </p>
+          <p>
+            The cause was simple: <code>job["status"] = "complete"</code> was
+            unconditional. Forge was marking the code path complete, not the
+            installation outcome complete.
+          </p>
+          <p>
+            The fix was to make job state conditional on the actual result. If
+            SSH never comes up, the job now fails and returns early. A job is
+            only complete when post-install configuration actually runs.
+          </p>
+          <p>
+            That distinction matters. A job engine that reports success because
+            the function reached the bottom is not an infrastructure automation
+            system. It is a progress bar with false confidence.
+          </p>
+
+          <h2>2. ESXi 9.x ignored the network kickstart command</h2>
+          <p>
+            Hosts installed successfully but came up without the expected
+            management VLAN on the port group. The kickstart looked right. The
+            install completed. The network state was wrong.
+          </p>
+          <p>
+            The root cause was that ESXi 9.x ignored the traditional
+            <code>network</code> kickstart command in this path. No useful error.
+            No obvious warning. Just a host that installed cleanly and did not
+            apply the network configuration Forge asked for.
+          </p>
+          <p>
+            The fix was to move the host configuration into a
+            <code>%firstboot --interpreter=busybox</code> block and use
+            <code>localcli</code> directly.
+          </p>
+          <pre><code>%firstboot --interpreter=busybox
+localcli network ip interface ipv4 set \
+  --interface-name=vmk0 \
+  --ipv4=&lt;management-ip&gt; \
+  --netmask=&lt;netmask&gt; \
+  --type=static
+
+localcli network ip route ipv4 add \
+  --gateway=&lt;gateway&gt; \
+  --network=0.0.0.0/0
+
+localcli system hostname set \
+  --host=&lt;host-name&gt; \
+  --domain=&lt;domain&gt;
+
+localcli network ip dns server add --server=&lt;dns-server&gt;
+localcli system ntp set --enabled=true --server=&lt;ntp-server&gt;
+localcli network firewall ruleset set --enabled=true --ruleset-id=sshServer
+/sbin/chkconfig SSH on
+/sbin/chkconfig TSM-SSH on
+
+# Set the management VLAN last, because it changes reachability.
+localcli network vswitch standard portgroup set \
+  --portgroup-name='Management Network' \
+  --vlan-id=&lt;management-vlan&gt;</code></pre>
+          <p>
+            The <code>localcli</code> detail matters. <code>localcli</code>
+            talks directly to the local system and does not depend on hostd being
+            fully available. In early first boot, that makes it a better fit than
+            <code>esxcli</code> for this stage of the install.
+          </p>
+          <p>
+            The VLAN step also has to be treated carefully. Changing the VLAN on
+            the management port group can drop connectivity. In first boot, that
+            is acceptable because the commands are running locally, but it still
+            needs to be the last network operation.
+          </p>
+
+          <h2>3. The Redfish boot-once patch that did nothing</h2>
+          <p>
+            Forge logged that it had set one-time boot to virtual CD and then
+            rebooted the server. The server came back running the existing ESXi
+            install. The Redfish calls looked successful. The machine ignored
+            them.
+          </p>
+          <p>
+            The first problem was the standard Redfish boot override path. A
+            patch to the system boot settings with a virtual CD target returned
+            success on the iDRAC hosts in this lab, but did not actually change
+            the next boot. The allowable values exposed by the BMC made the
+            problem visible: the standard target was not a real option for that
+            platform.
+          </p>
+          <p>
+            The working path was to use BIOS settings instead: set one-time UEFI
+            boot mode and point the one-time UEFI boot device at the iDRAC
+            virtual media device discovered from live BIOS attributes.
+          </p>
+          <p>
+            That still was not enough. On Dell iDRAC, pending BIOS settings need
+            a separate BIOS configuration job. Without that job, the settings sit
+            in the pending endpoint and never get applied on reboot.
+          </p>
+          <pre><code># After PATCH /Bios/Settings succeeds, create the Dell BIOS config job.
+s.post(
+    f"{base}/Managers/iDRAC.Embedded.1/Oem/Dell/Jobs",
+    json={
+        "TargetSettingsURI":
+            "/redfish/v1/Systems/System.Embedded.1/Bios/Settings"
+    },
+)</code></pre>
+          <p>
+            The verification was not the HTTP response. The verification was
+            checking current BIOS attributes after reboot and seeing that the
+            one-time boot setting had been consumed.
+          </p>
+
+          <h2>4. Connectivity tests ran from the wrong machine</h2>
+          <p>
+            Another failure looked like the installed hosts were unreachable. All
+            port checks against the management subnet failed, which suggested the
+            install had not configured the host correctly.
+          </p>
+          <p>
+            The test was wrong. The development workstation did not have a route
+            to the ESXi management subnet. The checks were proving that the
+            workstation could not reach that network, not that the hosts were
+            down.
+          </p>
+          <p>
+            The fix was to run SSH and port checks from the Forge server, which
+            does have the right route, while keeping Redfish checks pointed at
+            the reachable BMC network.
+          </p>
+          <p>
+            A clean negative result and a routing black hole can look identical.
+            Before trusting connectivity tests, verify the test path.
+          </p>
+
+          <h2>5. Background jobs died during redeploy</h2>
+          <p>
+            Some jobs froze mid-run. Logs stopped updating. Status stayed at
+            <code>booting</code>. The SSH wait never completed.
+          </p>
+          <p>
+            The cause was process lifecycle, not ESXi. Forge was running install
+            jobs as Python background threads inside the web process. Redeploying
+            the application tore down the container and killed any in-flight
+            threads instantly. The job record kept whatever state and log lines
+            existed at the moment of termination.
+          </p>
+          <p>
+            The immediate mitigation is simple: do not redeploy while jobs are
+            active. The long-term answer is a persistent job queue or task runner
+            that survives process restarts and can mark interrupted work
+            correctly.
+          </p>
+          <p>
+            This is one of those product lessons that only shows up once the tool
+            starts managing real hardware. A job engine has to survive the
+            operator's workflow, not just the happy path in code.
+          </p>
+
+          <h2>6. NTP ran once but did not persist</h2>
+          <p>
+            Fresh installs showed NTP configured and synchronized. After reboot,
+            the service was not running.
+          </p>
+          <p>
+            The issue was startup policy. Setting NTP servers and enabling the
+            service for the current session did not guarantee the daemon would
+            start at boot.
+          </p>
+          <p>
+            The fix was to make startup explicit in both first boot and
+            post-install configuration.
+          </p>
+          <pre><code>/sbin/chkconfig ntpd on</code></pre>
+          <p>
+            On this ESXi path, <code>chkconfig</code> was the mechanism that
+            mattered for persistence.
+          </p>
+
+          <h2>Summary</h2>
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Issue</th>
+                <th>Misleading signal</th>
+                <th>Actual cause</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Jobs always complete</td>
+                <td>UI status said complete</td>
+                <td>Status was assigned unconditionally</td>
+              </tr>
+              <tr>
+                <td>Network config missing</td>
+                <td>Install completed</td>
+                <td>ESXi 9.x ignored the kickstart network command</td>
+              </tr>
+              <tr>
+                <td>Boot-once ignored</td>
+                <td>Redfish returned success</td>
+                <td>Standard boot override was not functional for this platform</td>
+              </tr>
+              <tr>
+                <td>BIOS setting not consumed</td>
+                <td>Pending setting existed</td>
+                <td>Dell required an OEM BIOS configuration job</td>
+              </tr>
+              <tr>
+                <td>Connectivity failed</td>
+                <td>All checks returned negative</td>
+                <td>The test source had no route to the management subnet</td>
+              </tr>
+              <tr>
+                <td>Jobs froze</td>
+                <td>Logs stopped, status stayed booting</td>
+                <td>Redeploy killed in-process background threads</td>
+              </tr>
+              <tr>
+                <td>NTP not persistent</td>
+                <td>NTP worked before reboot</td>
+                <td>Service startup policy was not set</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h2>The lesson</h2>
+          <p>
+            The theme across all six issues is that success responses are not the
+            same as success on the metal. A Redfish call can return 200 and do
+            nothing useful. A kickstart can be syntactically valid and still not
+            apply the setting you need. A connection test can complete while
+            proving only that the test source is in the wrong place. A job can
+            finish its code path while the host is not configured.
+          </p>
+          <p>
+            Forge has to be skeptical by design. The job engine should report
+            outcomes, not code paths. The BMC layer should verify current state,
+            not just response codes. The installer path should test what ESXi
+            actually applied. Connectivity checks should run from the machine
+            that represents the real operational path.
+          </p>
+          <p>
+            That is the difference between writing an installer wrapper and
+            building infrastructure automation. The wrapper runs commands. The
+            automation system proves the machine ended up where it was supposed
+            to be.
+          </p>
+        </article>
+      </main>
+
+      <footer class="site-footer">
+        <span>© 2026 Brandon Quantz</span>
+      </footer>
+    </div>
+  </body>
+</html>
