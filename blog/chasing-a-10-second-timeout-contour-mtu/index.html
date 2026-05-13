@@ -294,6 +294,13 @@ Get "https://&lt;kubernetes-service-ip&gt;:443/api": net/http: TLS handshake tim
             That ruled out the easy version of the MTU problem. It did not rule
             out every L3 hop.
           </p>
+          <p>
+            This is where the trap was. A configuration check can tell you what
+            an interface is supposed to support. It does not always prove what
+            the routed path will actually pass, especially when firewall parent
+            interfaces, VLAN sub-interfaces, and inherited MTU behavior are all
+            involved.
+          </p>
 
           <h2>Where the agent needed human context</h2>
           <p>
@@ -380,8 +387,15 @@ Get "https://&lt;kubernetes-service-ip&gt;:443/api": net/http: TLS handshake tim
           </p>
           <p>
             The router in that path was a firewall acting as the gateway for
-            both TEP networks. Its parent aggregate and relevant VLAN
-            sub-interfaces were still at the default 1500-byte MTU.
+            both TEP networks. The important finding was not just a line in the
+            interface configuration. The effective path MTU across that routed
+            firewall boundary was 1500 bytes, even though other parts of the
+            fabric and overlay stack appeared to be configured for jumbo frames.
+          </p>
+          <p>
+            That distinction matters. If you stop at "show me the MTU on the
+            interface," it is easy to convince yourself the network is fine. The
+            don't-fragment test proved the path was not fine.
           </p>
 
           <h2>The math</h2>
@@ -410,9 +424,11 @@ outer IP frame              ~1538 bytes</code></pre>
 
           <h2>The fix</h2>
           <p>
-            The fix was to enable jumbo frames on the firewall and set the
-            parent aggregate plus the relevant TEP-facing VLAN interfaces to
-            9000-byte MTU.
+            The fix was to make jumbo behavior explicit on the firewall path:
+            enable jumbo frames and set the fabric-facing parent plus the
+            relevant TEP-facing VLAN interfaces to a jumbo MTU. That removed any
+            ambiguity around parent/sub-interface inheritance and made the
+            effective routed path match what the overlay required.
           </p>
           <pre><code>config system global
     set jumbo-frame enable
@@ -464,6 +480,14 @@ end</code></pre>
           <p>
             The technical lesson is about MTU. The more interesting lesson is
             about how agentic AI fits into real troubleshooting.
+          </p>
+          <p>
+            The MTU lesson is not simply "remember to enable jumbo frames."
+            Everyone knows NSX overlay traffic needs headroom. The sharper
+            lesson is that visible MTU configuration is not the same thing as
+            verified path MTU. Parent interfaces, VLAN sub-interfaces, inherited
+            settings, and firewall routing behavior can make the config look less
+            suspicious than the packet path really is.
           </p>
           <p>
             NSX overlay networks need jumbo frames on every underlay hop that
