@@ -31,13 +31,13 @@
 
       <main>
         <header class="article-header">
-          <p class="eyebrow">Field Notes · NSX / MTU Troubleshooting</p>
+          <p class="eyebrow">Agentic Operations · NSX / MTU Troubleshooting</p>
           <h1>Chasing a 10-Second Timeout: How an MTU Misconfiguration Broke Contour for Five Days</h1>
           <p class="article-summary">
-            A Contour pod started, waited exactly ten seconds, and died. The
-            root cause was not Kubernetes, Contour, or the NSX load balancer. It
-            was a 1500-byte MTU boundary in the underlay path carrying Geneve
-            overlay traffic.
+            A Contour pod started, waited exactly ten seconds, and died. Claude
+            Code helped grind through the evidence, but the investigation only
+            worked because agentic troubleshooting was paired with human
+            architecture context.
           </p>
           <div class="hero-meta">
             <span>By Brandon Quantz</span>
@@ -69,6 +69,13 @@
             load-balancer problem. The actual issue was a silent MTU drop three
             layers below that, in the physical routing path that Geneve overlay
             packets traverse between an ESXi host and an NSX Edge VM.
+          </p>
+          <p>
+            This was another joint effort between me and Claude Code. The value
+            was not that an agent magically knew the answer. It was that the
+            agent could keep collecting evidence across layers while I kept
+            adding the operational context it could not infer from commands
+            alone.
           </p>
 
           <h2>The environment</h2>
@@ -303,6 +310,13 @@ Get "https://&lt;kubernetes-service-ip&gt;:443/api": net/http: TLS handshake tim
             The breakthrough came from testing the host TEP to Edge TEP path
             directly with the don't-fragment bit set.
           </p>
+          <p>
+            This is where the human/agent loop mattered. Claude Code was useful
+            because it could hold the packet evidence, NSX behavior, pod restart
+            timing, and previous dead ends in one working context. But the next
+            useful question was architectural: who actually routes between the
+            host TEP and Edge TEP networks?
+          </p>
           <table class="compare-table">
             <thead>
               <tr>
@@ -414,6 +428,10 @@ end</code></pre>
 
           <h2>The lesson</h2>
           <p>
+            The technical lesson is about MTU. The operational lesson is about
+            how agentic AI fits into real troubleshooting.
+          </p>
+          <p>
             NSX overlay networks need jumbo frames on every underlay hop that
             carries encapsulated traffic, including routed firewall interfaces
             between TEP subnets. It is not enough for the ESXi vmnics,
@@ -431,6 +449,14 @@ end</code></pre>
             create it. Contour found it, because it was the first workload in
             that environment to exercise the full CRX pod to NSX load-balancer to
             overlay backend path with a payload large enough to matter.
+          </p>
+          <p>
+            Claude Code helped compress the investigation. It could test,
+            compare, capture, summarize, and keep pressure on the problem for
+            hours. But it still needed a human operator to recognize when a
+            conclusion did not fit the architecture, ask better questions, and
+            connect a TLS timeout to an underlay routing boundary that was not
+            obvious from the first symptom.
           </p>
         </article>
       </main>
