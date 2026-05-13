@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Forge: From Powered-Off to Production-Ready | Brandon Quantz</title>
+    <meta
+      name="description"
+      content="Introducing Forge, a self-hosted bare-metal-to-platform automation system that starts with powered-off servers and builds toward repeatable infrastructure workflows."
+    />
+    <link
+      rel="canonical"
+      href="https://theinfrastructureshift.com/blog/forge-from-powered-off-to-production-ready/"
+    />
+    <link rel="stylesheet" href="../../styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <nav class="nav" aria-label="Main navigation">
+          <a class="brand" href="../../">
+            <strong>Brandon Quantz</strong>
+            <span>Product architecture notes</span>
+          </a>
+          <div class="nav-links">
+            <a href="../../">Home</a>
+            <a href="mailto:bquantz@gmail.com">Contact</a>
+          </div>
+        </nav>
+      </header>
+
+      <main>
+        <header class="article-header">
+          <p class="eyebrow">Forge · Part 1</p>
+          <h1>Forge: From Powered-Off to Production-Ready</h1>
+          <p class="article-summary">
+            Every infrastructure automation platform has a starting assumption:
+            the operating system is already installed. Forge is the layer I am
+            building for everything that has to happen before that.
+          </p>
+          <div class="hero-meta">
+            <span>By Brandon Quantz</span>
+            <span>May 2026</span>
+          </div>
+        </header>
+
+        <article class="article">
+          <p class="disclaimer">
+            Forge is an application I am actively developing. This post is the
+            first in a series on the problem space, architecture, implementation
+            direction, and lessons learned while building it.
+          </p>
+
+          <h2>The problem</h2>
+          <p>
+            Every infrastructure platform has an automation story. Terraform
+            provisions cloud resources. Ansible configures running systems. vLCM
+            manages ESXi at scale. Nutanix Foundation images nodes. VMware Cloud
+            Foundation bring-up orchestrates a full SDDC stack.
+          </p>
+          <p>
+            Every one of them assumes the operating system is already there.
+          </p>
+          <p>
+            That assumption is where lab engineers, small infrastructure teams,
+            and anyone who has ever racked a physical server still spend hours
+            they should not have to spend. Booting ISOs. Babysitting installers.
+            Re-running kickstarts. Checking firmware by hand. Running
+            post-install scripts from a terminal. Wondering which host is in
+            which state after a rebuild gets interrupted.
+          </p>
+          <p>
+            The gap between a powered-off server and a running platform has
+            never had a clean answer. That is the gap Forge is meant to own.
+          </p>
+
+          <h2>What Forge is</h2>
+          <p>
+            Forge is a bare-metal-to-platform automation system. It owns the
+            physical layer: the part every other tool quietly assumes is already
+            done.
+          </p>
+          <p>
+            Starting from a powered-off server with an out-of-band management
+            interface, Forge can:
+          </p>
+          <ul>
+            <li>Pull hardware inventory from the BMC over Redfish.</li>
+            <li>Capture CPU, memory, storage topology, NIC state, and firmware details.</li>
+            <li>Generate a host-specific OS installer configuration.</li>
+            <li>Remaster a source ISO with that configuration embedded.</li>
+            <li>Mount the ISO as virtual media.</li>
+            <li>Force a one-time boot through the BIOS job queue.</li>
+            <li>Track the install as a live job with streamed logs.</li>
+            <li>Apply post-install configuration over SSH once the OS is up.</li>
+            <li>Hand off to the next platform-specific workflow stage.</li>
+          </ul>
+          <p>
+            No PXE infrastructure. No DHCP reservations. No manually staging
+            ISOs. No hoping a screen session survived. One form submission, one
+            job, one audit trail: from powered-off metal to configured operating
+            system.
+          </p>
+
+          <figure class="diagnostic-diagram" aria-labelledby="forge-path-title">
+            <figcaption id="forge-path-title">The part Forge owns</figcaption>
+            <div class="diagram-flow" aria-hidden="true">
+              <span>Powered-off server</span>
+              <span class="diagram-arrow">--</span>
+              <span>Forge</span>
+              <span class="diagram-arrow">--</span>
+              <span>Platform handoff</span>
+            </div>
+            <dl class="diagram-states">
+              <div>
+                <dt>Input</dt>
+                <dd>BMC access, hardware inventory, OS media, host intent</dd>
+              </div>
+              <div>
+                <dt>Forge work</dt>
+                <dd>Install media, virtual media boot, job tracking, post-install config</dd>
+              </div>
+              <div>
+                <dt>Output</dt>
+                <dd>A configured host ready for VCF, Nutanix, Proxmox, Azure Local, or Linux workflows</dd>
+              </div>
+            </dl>
+          </figure>
+
+          <h2>The workflow idea</h2>
+          <p>
+            An OS install is stage one. The larger idea is a workflow engine for
+            platform standup: an ordered chain of jobs across multiple hosts with
+            dependency tracking, retries, logs, and status rollup.
+          </p>
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Workflow</th>
+                <th>Stage 1</th>
+                <th>Stage 2</th>
+                <th>Stage 3</th>
+                <th>End state</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>VMware VCF</td>
+                <td>ESXi on N hosts</td>
+                <td>Installer appliance</td>
+                <td>Bring-up API</td>
+                <td>SDDC ready</td>
+              </tr>
+              <tr>
+                <td>Nutanix AHV</td>
+                <td>Phoenix imaging</td>
+                <td>Cluster formation</td>
+                <td>Prism configuration</td>
+                <td>Cluster ready</td>
+              </tr>
+              <tr>
+                <td>Proxmox</td>
+                <td>Proxmox VE on N hosts</td>
+                <td>Cluster join</td>
+                <td>Ceph initialization</td>
+                <td>Cluster ready</td>
+              </tr>
+              <tr>
+                <td>Azure Local</td>
+                <td>Windows Server on N hosts</td>
+                <td>Failover cluster</td>
+                <td>S2D / Arc registration</td>
+                <td>HCI ready</td>
+              </tr>
+              <tr>
+                <td>Generic Linux</td>
+                <td>Distro install</td>
+                <td>Custom post-install</td>
+                <td>Optional handoff</td>
+                <td>Ready host</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            Each workflow is a template. Assign hosts, provide platform
+            credentials, submit, and let Forge handle sequencing. Every stage is
+            a job. Every job has a log. The whole standup becomes something you
+            can run again later without depending on memory, notes, or a terminal
+            scrollback that disappeared three rebuilds ago.
+          </p>
+
+          <h2>Why it is different</h2>
+          <p>
+            Forge starts from zero. Not from a running operating system. Not from
+            a provisioned VM. Not from a node that a platform installer can
+            already reach. From a powered-off physical server.
+          </p>
+          <p>
+            That is not a subtle distinction. It is where real infrastructure
+            work begins, and it is where most higher-level automation tools
+            intentionally stop caring.
+          </p>
+          <p>
+            Forge is also not trying to replace Terraform, Ansible, VCF
+            bring-up, Nutanix Foundation, or platform-native automation. It runs
+            before those tools. The goal is to put the machine into a known,
+            configured, auditable state and then hand off cleanly to whatever
+            comes next.
+          </p>
+
+          <h2>Hardware-aware by design</h2>
+          <p>
+            The inventory step matters. Forge reads real hardware state from the
+            BMC before writing installer configuration: CPUs, memory, disks,
+            controllers, NICs, link state, firmware versions, and management
+            details.
+          </p>
+          <p>
+            That turns provisioning from "I hope this host looks like the
+            spreadsheet" into something the system can reason about. If a NIC
+            link is down, storage looks wrong, or firmware does not match the
+            expected profile, that should be visible before the install starts,
+            not discovered halfway through a platform bring-up.
+          </p>
+
+          <h2>Repeatability is the product</h2>
+          <p>
+            Labs get rebuilt. VCF domains get redeployed. Nutanix clusters get
+            re-imaged. Proxmox clusters get torn down and built again. That is
+            not an edge case. For the environments I work in, rebuilds are part
+            of the operating model.
+          </p>
+          <p>
+            Forge treats repeatability as the product. Host definitions,
+            installer configs, kickstart libraries, workflow templates, and job
+            history all become part of the system. The tenth rebuild should be as
+            boring as the first.
+          </p>
+
+          <h2>Why a web app</h2>
+          <p>
+            I want Forge to be visible and auditable from a browser. The work it
+            performs is too important to hide inside a one-off terminal session.
+          </p>
+          <p>
+            A web app gives the full workflow a surface area: hosts, inventory,
+            job state, live logs, notes, install history, workflow status, and
+            failures that can be reviewed after the fact. If a host fails during
+            install, the question should not be "who had the terminal open?" It
+            should be "what does the job log say?"
+          </p>
+
+          <h2>Current state</h2>
+          <p>
+            Forge currently handles the full ESXi bare-metal provisioning
+            pipeline on Dell iDRAC hardware:
+          </p>
+          <ul>
+            <li>Redfish inventory and lifecycle actions.</li>
+            <li>Virtual media mount and BIOS boot-once through the job queue.</li>
+            <li>Kickstart generation and ISO remastering with host-specific config.</li>
+            <li>Post-install SSH configuration for networking, hostname, DNS, NTP, and TLS regeneration.</li>
+            <li>Live job tracking with streamed logs, host notes, and a kickstart library.</li>
+            <li>Multiple ESXi hosts under management with active installs running in the lab.</li>
+          </ul>
+          <p>
+            VCF Installer appliance deployment is the next active stage, with
+            Nutanix Phoenix ISO support designed in parallel.
+          </p>
+
+          <h2>Where it goes</h2>
+          <p>
+            The foundation is in place. The Redfish layer is hardware-aware. The
+            job engine exists. The host model is extensible. The next step is to
+            move from individual host provisioning into full platform workflows.
+          </p>
+          <ol>
+            <li>Appliance deployment with govc-based OVA workflows.</li>
+            <li>Multi-host workflow chaining with dependency graphs and status rollup.</li>
+            <li>OS pluggability for Phoenix, Windows unattended, Proxmox, and Linux installers.</li>
+            <li>Workflow templates for VCF, Nutanix, Proxmox, and Azure Local.</li>
+            <li>Workflow definitions as code: version-controlled, shareable, and executable from an API.</li>
+          </ol>
+          <p>
+            The end state is simple to describe and hard to build: one self-hosted
+            system that can take supported infrastructure from powered-off metal
+            to a running platform with logs, state, and repeatability built in.
+          </p>
+
+          <h2>The opportunity</h2>
+          <p>
+            Every organization running on-premises infrastructure rebuilds
+            environments. Every platform vendor has a bring-up process that
+            assumes someone else handled the hardware. Every lab engineer has
+            spent a weekend reimaging servers that a well-designed system should
+            have handled in an afternoon.
+          </p>
+          <p>
+            Forge is my attempt to build that system.
+          </p>
+          <p>
+            The physical layer is the beginning. The workflow engine is next.
+            The platforms are the payload.
+          </p>
+        </article>
+      </main>
+
+      <footer class="site-footer">
+        <span>© 2026 Brandon Quantz</span>
+      </footer>
+    </div>
+  </body>
+</html>
