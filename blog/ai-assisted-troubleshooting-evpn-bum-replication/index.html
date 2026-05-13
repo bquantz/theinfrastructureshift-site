@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI-Assisted Troubleshooting in a Spine-Leaf Fabric | Brandon Quantz</title>
+    <meta
+      name="description"
+      content="A field note on using AI-assisted troubleshooting to diagnose EVPN BUM replication issues between Dell OS10 leaf switches and SONiC/FRR spines."
+    />
+    <link
+      rel="canonical"
+      href="https://theinfrastructureshift.com/blog/ai-assisted-troubleshooting-evpn-bum-replication/"
+    />
+    <link rel="stylesheet" href="../../styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <nav class="nav" aria-label="Main navigation">
+          <a class="brand" href="../../">
+            <strong>Brandon Quantz</strong>
+            <span>Infrastructure architecture notes</span>
+          </a>
+          <div class="nav-links">
+            <a href="../../">Home</a>
+            <a href="mailto:bquantz@gmail.com">Contact</a>
+          </div>
+        </nav>
+      </header>
+
+      <main>
+        <header class="article-header">
+          <p class="eyebrow">Field Notes · EVPN Troubleshooting</p>
+          <h1>AI-Assisted Troubleshooting in a Spine-Leaf Fabric</h1>
+          <p class="article-summary">
+            What happened when I gave an AI coding agent visibility into a real
+            lab fabric and let it work through an EVPN BUM replication failure.
+          </p>
+          <div class="hero-meta">
+            <span>By Brandon Quantz</span>
+            <span>May 2026</span>
+          </div>
+        </header>
+
+        <article class="article">
+          <p class="disclaimer">
+            The views in this post are my own. Lab details are generalized and
+            sanitized; the technical pattern is the point, not the specific
+            environment.
+          </p>
+
+          <h2>The interesting part was not that AI helped</h2>
+          <p>
+            I recently used an AI coding agent with full visibility into a
+            spine-leaf lab fabric. It had shell access, could inspect the
+            switches, run show commands, move around the fabric, and take packet
+            captures.
+          </p>
+          <p>
+            The failure involved EVPN BUM replication after replacing Dell OS10
+            spine switches with SONiC spines running FRR. BGP EVPN sessions were
+            up. Routes were present. But the Dell OS10 leaf switches were not
+            programming the NVE flood list, which meant broadcast, unknown
+            unicast, and multicast traffic stopped crossing VXLAN tunnels between
+            leaves.
+          </p>
+          <p>
+            The agent worked for almost two hours with very little engagement
+            from me. It jumped across the fabric, checked BGP state, inspected
+            EVPN route tables, looked at NVE state, and captured BGP UPDATEs on
+            the wire.
+          </p>
+          <p>
+            Then it came back with the wrong conclusion: the Dell switches were
+            the problem and the issue could not be fixed.
+          </p>
+          <p>
+            That answer did not sit right. I told it one simple thing: this
+            worked when the spines were also Dell OS10.
+          </p>
+          <p>
+            That changed the investigation. With that constraint added, the agent
+            spent another hour working through the control-plane behavior and
+            found the real root cause.
+          </p>
+
+          <h2>The actual failure</h2>
+          <p>
+            The lab had Dell OS10 leaf switches and SONiC/FRR spine switches.
+            After the spine replacement, EVPN Type-3 IMET routes were still being
+            exchanged, but the Dell OS10 leaves did not populate their NVE
+            replication lists.
+          </p>
+          <p>The visible symptoms were straightforward:</p>
+          <ul>
+            <li>BGP EVPN sessions were established.</li>
+            <li>EVPN Type-3 routes were present in the control plane.</li>
+            <li>The NVE flood list stayed empty on the Dell OS10 leaves.</li>
+            <li>BUM traffic did not cross VXLAN tunnels between leaf switches.</li>
+          </ul>
+          <p>
+            The important detail was that the routes existed in BGP, but the leaf
+            switches did not install them into the data-plane replication list.
+            That distinction matters. This was not simply "EVPN is broken." It
+            was a control-plane-to-data-plane programming failure triggered by a
+            missing route attribute.
+          </p>
+
+          <h2>The root cause</h2>
+          <p>
+            Dell OS10 10.5.3.x expects the Encapsulation Extended Community to be
+            present on received EVPN Type-3 IMET routes before it programs the
+            NVE flood list. In this case, the relevant community identifies
+            VXLAN encapsulation.
+          </p>
+          <p>
+            When the spines were Dell OS10, that extended community was preserved
+            transparently. When the spines were SONiC running FRR 10.3, FRR
+            parsed the received Encapsulation Extended Community and showed the
+            route internally with VXLAN encapsulation, but did not include that
+            community when re-advertising the EVPN route to eBGP peers.
+          </p>
+          <p>
+            Packet captures confirmed the distinction. The outgoing BGP UPDATEs
+            from the SONiC/FRR spines contained the PMSI Tunnel Attribute with
+            the expected VNI, but did not contain the Encapsulation Extended
+            Community that the Dell OS10 leaves required for data-plane
+            programming.
+          </p>
+          <p>
+            The result was subtle: the Dell leaf switches accepted the EVPN route
+            into BGP, but did not use it to build the VXLAN flood list.
+          </p>
+
+          <h2>The secondary issue</h2>
+          <p>
+            A second problem appeared during packet capture and configuration
+            review: graceful shutdown was enabled in FRR on the SONiC spines.
+            That caused FRR to attach the well-known graceful-shutdown community
+            to outgoing eBGP advertisements.
+          </p>
+          <p>
+            That was not the root cause of the missing flood list, but it was
+            still wrong. It would cause routes from the spines to be treated as
+            least-preferred. Removing that setting was part of the cleanup.
+          </p>
+
+          <h2>What the diagnostic path looked like</h2>
+          <p>The useful troubleshooting sequence was:</p>
+          <ol>
+            <li>Confirm EVPN BGP sessions were established.</li>
+            <li>Confirm Type-3 IMET routes existed on the spines.</li>
+            <li>Confirm the leaf switches received the routes.</li>
+            <li>Confirm the NVE replication list stayed empty.</li>
+            <li>Capture BGP UPDATEs on the spine-to-leaf path.</li>
+            <li>Compare received route attributes with re-advertised attributes.</li>
+            <li>Verify whether the missing attribute could be added with policy.</li>
+            <li>Remove the unrelated graceful-shutdown misconfiguration.</li>
+          </ol>
+          <p>
+            The packet capture was the turning point. It moved the conversation
+            from "the route is there" to "the route is missing the attribute this
+            receiver requires to program the data plane."
+          </p>
+
+          <h2>The workaround</h2>
+          <p>
+            There was no practical FRR 10.3 configuration knob in this environment
+            to force the Encapsulation Extended Community back into the outgoing
+            EVPN UPDATEs. The Dell OS10 leaves also could not synthesize the
+            required encapsulation community with an inbound route-map.
+          </p>
+          <p>
+            The working remediation was to remove graceful shutdown on the SONiC
+            spines and add static remote VTEP entries on the Dell OS10 leaves for
+            the affected VNIs.
+          </p>
+          <pre><code>router bgp 65000
+  no bgp graceful-shutdown
+
+clear bgp l2vpn evpn * soft out</code></pre>
+          <p>
+            On the leaves, each affected virtual network was given the remote
+            VTEP IPs needed for head-end replication:
+          </p>
+          <pre><code>virtual-network &lt;virtual-network-id&gt;
+  vxlan-vni &lt;vni&gt;
+    remote-vtep &lt;remote-vtep-ip&gt;
+    remote-vtep &lt;remote-vtep-ip&gt;
+    remote-vtep &lt;remote-vtep-ip&gt;</code></pre>
+          <p>
+            After that, the kernel bridge forwarding database showed static flood
+            entries for the VXLAN interfaces, and BUM replication was restored.
+          </p>
+
+          <h2>The tradeoff</h2>
+          <p>
+            The workaround is static. It bypasses the dynamic EVPN control-plane
+            learning path for BUM replication and relies on manually provisioned
+            remote VTEPs.
+          </p>
+          <p>That has operational consequences:</p>
+          <ul>
+            <li>New leaf pairs require manual remote-VTEP updates.</li>
+            <li>Removed VTEPs can leave stale replication entries behind.</li>
+            <li>New or removed VNIs require configuration updates.</li>
+            <li>Anycast VTEP behavior must be understood and documented.</li>
+          </ul>
+          <p>
+            It is a valid lab workaround, but not the end state I would want for
+            a production fabric. The long-term answer is a control-plane fix:
+            either a SONiC/FRR version that re-advertises the required extended
+            community correctly, a source patch, or a different BGP
+            implementation in the spine role.
+          </p>
+
+          <h2>What I learned about using AI this way</h2>
+          <p>
+            The lesson was not that the AI agent magically solved the problem.
+            It did not. It spent a long time exploring and still made a bad call.
+          </p>
+          <p>
+            The useful part was that it could hold a large operational context,
+            move through the fabric, collect data, and keep grinding through
+            packet-level evidence. The missing part was architectural memory.
+            It did not know that the fabric had worked with Dell OS10 spines
+            until I told it.
+          </p>
+          <p>
+            One sentence from the operator changed the investigation:
+          </p>
+          <blockquote>
+            This worked when the spines were OS10.
+          </blockquote>
+          <p>
+            That is the real pattern. AI can accelerate troubleshooting, but it
+            still needs a human who understands the system well enough to
+            challenge a conclusion, add a missing constraint, and recognize when
+            a technically plausible answer does not fit the history of the
+            environment.
+          </p>
+
+          <h2>References</h2>
+          <ul>
+            <li>
+              <a href="https://www.rfc-editor.org/rfc/rfc7432">RFC 7432</a>:
+              BGP MPLS-Based Ethernet VPN
+            </li>
+            <li>
+              <a href="https://www.rfc-editor.org/rfc/rfc9012">RFC 9012</a>:
+              The BGP Tunnel Encapsulation Attribute
+            </li>
+            <li>
+              <a href="https://github.com/FRRouting/frr">FRRouting</a>
+            </li>
+            <li>
+              <a href="https://github.com/sonic-net/sonic-buildimage">SONiC buildimage</a>
+            </li>
+          </ul>
+        </article>
+      </main>
+
+      <footer class="site-footer">
+        <span>© 2026 Brandon Quantz</span>
+      </footer>
+    </div>
+  </body>
+</html>
