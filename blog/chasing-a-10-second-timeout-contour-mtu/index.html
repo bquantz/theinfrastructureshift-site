@@ -35,9 +35,9 @@
           <h1>Chasing a 10-Second Timeout: How an MTU Misconfiguration Broke Contour for Five Days</h1>
           <p class="article-summary">
             A Contour pod started, waited exactly ten seconds, and died. Claude
-            Code helped grind through the evidence, but the investigation only
-            worked because agentic troubleshooting was paired with human
-            architecture context.
+            Code could grind through logs, captures, and NSX state for hours, but
+            the investigation only broke open when that agentic persistence met
+            human architecture context.
           </p>
           <div class="hero-meta">
             <span>By Brandon Quantz</span>
@@ -63,6 +63,12 @@
             environment ended the same way. The pod would start, wait exactly ten
             seconds, and exit with code 1. No drift. No partial success. Just ten
             seconds, every time.
+          </p>
+          <p>
+            This was not a prompt-and-answer session. It was an agentic
+            troubleshooting loop: Claude Code moving through evidence, me adding
+            constraints and correcting assumptions, and the investigation
+            tightening one layer at a time.
           </p>
           <p>
             The first symptom looked like a Kubernetes service endpoint or NSX
@@ -152,6 +158,27 @@ Get "https://&lt;kubernetes-service-ip&gt;:443/api": net/http: TLS handshake tim
           </p>
           <p>
             The broken endpoint was the API path through the NSX VIP.
+          </p>
+
+          <h2>Where the agent helped</h2>
+          <p>
+            Claude Code was useful because it could stay in the problem. It could
+            pull logs, compare endpoints, inspect pod environment, read packet
+            captures, summarize what had already been ruled out, and keep
+            following the thread without getting bored or skipping the tedious
+            checks.
+          </p>
+          <p>
+            That matters in infrastructure troubleshooting. The work is often not
+            one brilliant command. It is accumulation: small facts, failed
+            theories, packet sizes, path differences, and the discipline to keep
+            asking whether the current explanation fits all of the evidence.
+          </p>
+          <p>
+            But the agent did not have the lived model of the environment. It
+            could observe symptoms, but it still needed human context to decide
+            which symptoms were meaningful and which tests were exercising the
+            wrong path.
           </p>
 
           <h2>The deceptive symptom</h2>
@@ -268,7 +295,7 @@ Get "https://&lt;kubernetes-service-ip&gt;:443/api": net/http: TLS handshake tim
             out every L3 hop.
           </p>
 
-          <h2>Why this was hard to prove</h2>
+          <h2>Where the agent needed human context</h2>
           <p>
             The path was awkward to test. Management-network tests did not
             always exercise the same flow that a real Contour CRX pod used. Some
@@ -287,6 +314,13 @@ Get "https://&lt;kubernetes-service-ip&gt;:443/api": net/http: TLS handshake tim
             because BFD packets are tiny. A healthy BFD session tells you the
             tunnel can pass keepalives. It does not prove the underlay can carry
             full-size encapsulated application payloads.
+          </p>
+          <p>
+            This is the part of agentic operations that interests me. The agent
+            can be excellent at running the maze, but the human still has to know
+            when the maze is drawn wrong. In this case, "the API works from
+            management" was true and still not enough. It was not the same path
+            Contour used.
           </p>
 
           <h2>The wrong big hammer</h2>
@@ -426,10 +460,10 @@ end</code></pre>
             reasonable. They were also wrong.
           </p>
 
-          <h2>The lesson</h2>
+          <h2>The lesson: agentic AI still needs architecture judgment</h2>
           <p>
-            The technical lesson is about MTU. The operational lesson is about
-            how agentic AI fits into real troubleshooting.
+            The technical lesson is about MTU. The more interesting lesson is
+            about how agentic AI fits into real troubleshooting.
           </p>
           <p>
             NSX overlay networks need jumbo frames on every underlay hop that
