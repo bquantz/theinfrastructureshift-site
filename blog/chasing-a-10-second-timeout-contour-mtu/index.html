@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chasing a 10-Second Timeout: How an MTU Misconfiguration Broke Contour for Five Days | Brandon Quantz</title>
+    <meta
+      name="description"
+      content="A field note on troubleshooting a Contour CrashLoopBackOff in vSphere Supervisor where a TLS timeout turned out to be a silent MTU drop in the NSX Geneve underlay path."
+    />
+    <link
+      rel="canonical"
+      href="https://theinfrastructureshift.com/blog/chasing-a-10-second-timeout-contour-mtu/"
+    />
+    <link rel="stylesheet" href="../../styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <nav class="nav" aria-label="Main navigation">
+          <a class="brand" href="../../">
+            <strong>Brandon Quantz</strong>
+            <span>Product architecture notes</span>
+          </a>
+          <div class="nav-links">
+            <a href="../../">Home</a>
+            <a href="mailto:bquantz@gmail.com">Contact</a>
+          </div>
+        </nav>
+      </header>
+
+      <main>
+        <header class="article-header">
+          <p class="eyebrow">Field Notes · NSX / MTU Troubleshooting</p>
+          <h1>Chasing a 10-Second Timeout: How an MTU Misconfiguration Broke Contour for Five Days</h1>
+          <p class="article-summary">
+            A Contour pod started, waited exactly ten seconds, and died. The
+            root cause was not Kubernetes, Contour, or the NSX load balancer. It
+            was a 1500-byte MTU boundary in the underlay path carrying Geneve
+            overlay traffic.
+          </p>
+          <div class="hero-meta">
+            <span>By Brandon Quantz</span>
+            <span>May 2026</span>
+          </div>
+        </header>
+
+        <article class="article">
+          <p class="disclaimer">
+            The views in this post are my own. Lab details are generalized and
+            sanitized; hostnames, addresses, credentials, and object identifiers
+            have been removed or replaced with role-based descriptions.
+          </p>
+
+          <h2>Everything looked fine until it had to work</h2>
+          <p>
+            There is a special kind of frustration that comes from a failure
+            where every component looks healthy until the exact moment traffic
+            needs to move through the whole system.
+          </p>
+          <p>
+            For five days, every attempt to run Contour in a vSphere Supervisor
+            environment ended the same way. The pod would start, wait exactly ten
+            seconds, and exit with code 1. No drift. No partial success. Just ten
+            seconds, every time.
+          </p>
+          <p>
+            The first symptom looked like a Kubernetes service endpoint or NSX
+            load-balancer problem. The actual issue was a silent MTU drop three
+            layers below that, in the physical routing path that Geneve overlay
+            packets traverse between an ESXi host and an NSX Edge VM.
+          </p>
+
+          <h2>The environment</h2>
+          <p>
+            Contour was being deployed as a vSphere Supervisor Service on a new
+            VCF cluster. The important detail is that Contour ran as a CRX pod,
+            which is a vSphere Pod backed by a lightweight VM on ESXi. It was not
+            running as a normal container inside the Supervisor control-plane VM.
+          </p>
+          <p>
+            That distinction ended up being the whole story. Other Supervisor
+            services ran close to the API server path and did not exercise the
+            same overlay and load-balancer chain. Contour did.
+          </p>
+
+          <figure class="diagnostic-diagram" aria-labelledby="contour-path-title">
+            <figcaption id="contour-path-title">The traffic path that mattered</figcaption>
+            <div class="diagram-flow" aria-hidden="true">
+              <span>Contour CRX pod</span>
+              <span class="diagram-arrow">--</span>
+              <span>NSX DLB</span>
+              <span class="diagram-arrow">--</span>
+              <span>NSX Edge LB VIP</span>
+            </div>
+            <dl class="diagram-states">
+              <div>
+                <dt>Service IP</dt>
+                <dd>Kubernetes ClusterIP for the API server</dd>
+              </div>
+              <div>
+                <dt>VIP path</dt>
+                <dd>Distributed Load Balancer to an NSX Edge load-balancer VIP</dd>
+              </div>
+              <div>
+                <dt>Backend</dt>
+                <dd>Supervisor kube-apiserver on an NSX overlay segment</dd>
+              </div>
+            </dl>
+          </figure>
+
+          <p>
+            In simplified form, the flow looked like this:
+          </p>
+          <pre><code>Contour CRX pod
+  -&gt; Kubernetes service IP
+  -&gt; NSX Distributed Load Balancer in the ESXi datapath
+  -&gt; NSX Edge load-balancer VIP
+  -&gt; Supervisor kube-apiserver backend on an overlay segment</code></pre>
+          <p>
+            That path matters because the return traffic from the Supervisor VM
+            to the NSX Edge is carried over Geneve. If the underlay path cannot
+            pass the encapsulated frame size, the overlay can look alive while
+            still dropping the first full-size payload that matters.
+          </p>
+
+          <h2>The crash</h2>
+          <p>
+            The Contour log was short and brutal:
+          </p>
+          <pre><code>unable to initialize Server dependencies required to start Contour
+failed to determine if *v1.Secret is namespaced
+failed to get server groups
+Get "https://&lt;kubernetes-service-ip&gt;:443/api": net/http: TLS handshake timeout</code></pre>
+          <p>
+            TLS handshake timeout. In Go, the default TLS handshake timeout is
+            ten seconds. That explained the clock-like precision of the crash,
+            but it did not explain where the packet was disappearing.
+          </p>
+          <p>
+            Direct access to the Supervisor API server through its management
+            address worked. Certificates were valid. Responses were fast. RBAC,
+            Contour CRDs, the Contour certificate secret, and Kubernetes
+            environment injection all checked out.
+          </p>
+          <p>
+            The broken endpoint was the API path through the NSX VIP.
+          </p>
+
+          <h2>The deceptive symptom</h2>
+          <p>
+            Testing the VIP produced the kind of result that sends you down the
+            wrong path if you trust only surface checks:
+          </p>
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Test</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>TCP connect</td>
+                <td>Succeeded quickly</td>
+              </tr>
+              <tr>
+                <td>Plain HTTP to the HTTPS port</td>
+                <td>Returned 400 Bad Request</td>
+              </tr>
+              <tr>
+                <td>TLS handshake</td>
+                <td>Hung for about ten seconds</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            Plain HTTP working was the trap. The kube-apiserver can reject a
+            cleartext HTTP request on an HTTPS port with a small 400 response.
+            That response does not require a large TLS record to survive the
+            path.
+          </p>
+          <p>
+            TLS is different. The server eventually has to send its certificate,
+            and that certificate record is much larger than the tiny SYNs,
+            ClientHello fragments, keepalives, and error responses that were
+            making the environment look healthy.
+          </p>
+
+          <h2>The first reasonable theory was wrong</h2>
+          <p>
+            At first, the failure looked like an NSX load-balancer backend issue.
+            That was a reasonable hypothesis. The VIP accepted TCP, but TLS
+            never completed. The direct API endpoint worked. The service endpoint
+            pointed through the NSX path. It smelled like a broken backend pool
+            or a load-balancer profile problem.
+          </p>
+          <p>
+            We tried a workaround by pointing Contour at the direct API endpoint.
+            The pods still crashed, but differently: different exit code,
+            different timing, and enough change to prove the original failure
+            path had been partially bypassed.
+          </p>
+          <p>
+            More importantly, packet capture during the original VIP path showed
+            the first real clue. The Supervisor VM sent a large TCP segment
+            containing the TLS certificate record. The NSX Edge never ACKed it.
+            The Supervisor retransmitted the same segment over and over until
+            the client hit the ten-second TLS timeout.
+          </p>
+
+          <h2>The packet that gave it away</h2>
+          <p>
+            The key observation was not "TLS failed." It was this:
+          </p>
+          <ul>
+            <li>The backend TCP connection established.</li>
+            <li>Small TLS records moved successfully.</li>
+            <li>The large certificate segment was retransmitted repeatedly.</li>
+            <li>The Edge side never ACKed that segment.</li>
+          </ul>
+          <p>
+            That shifted the investigation away from certificates, RBAC, CRDs,
+            and basic load-balancer reachability. The system could pass small
+            packets. It could not pass the first large payload in the TLS
+            handshake.
+          </p>
+
+          <figure class="diagnostic-diagram" aria-labelledby="mtu-failure-title">
+            <figcaption id="mtu-failure-title">The failure signature</figcaption>
+            <dl class="diagram-states">
+              <div>
+                <dt>TCP handshake</dt>
+                <dd>Small packets passed</dd>
+              </div>
+              <div>
+                <dt>TLS setup</dt>
+                <dd>Small records passed</dd>
+              </div>
+              <div>
+                <dt>Certificate</dt>
+                <dd>Large Geneve-encapsulated segment dropped silently</dd>
+              </div>
+              <div>
+                <dt>Application result</dt>
+                <dd>Contour hit Go's ten-second TLS handshake timeout</dd>
+              </div>
+            </dl>
+          </figure>
+
+          <h2>The physical network looked clean</h2>
+          <p>
+            The obvious suspect for large-packet loss is MTU. We started with
+            the physical switching layer. Host-facing ports were configured for
+            jumbo frames. Uplinks were configured for jumbo frames. The relevant
+            VLANs were trunked where expected. The distributed switch and vmnics
+            were also set for jumbo frames.
+          </p>
+          <p>
+            That ruled out the easy version of the MTU problem. It did not rule
+            out every L3 hop.
+          </p>
+
+          <h2>Why this was hard to prove</h2>
+          <p>
+            The path was awkward to test. Management-network tests did not
+            always exercise the same flow that a real Contour CRX pod used. Some
+            tests could prove the API server was healthy without proving that the
+            CRX pod to DLB to Edge VIP to overlay backend path worked.
+          </p>
+          <p>
+            Packet capture was also less direct than I wanted. Standard captures
+            could see symptoms and sizes, but Geneve encapsulation makes it hard
+            to inspect the useful inner payload without the right datapath-level
+            access. NSX trace tooling also could not synthesize the exact payload
+            size that was failing.
+          </p>
+          <p>
+            BFD was another red herring. The tunnel health signals stayed up
+            because BFD packets are tiny. A healthy BFD session tells you the
+            tunnel can pass keepalives. It does not prove the underlay can carry
+            full-size encapsulated application payloads.
+          </p>
+
+          <h2>The wrong big hammer</h2>
+          <p>
+            At one point, the evidence seemed to point at stale NSX Edge state.
+            Both Edge VMs were redeployed from scratch. New transport state,
+            fresh Edge VMs, reconverged control plane, and Edge interfaces with
+            9000-byte MTU.
+          </p>
+          <p>
+            TLS still failed.
+          </p>
+          <p>
+            That was useful, even though it was not satisfying. It eliminated
+            Edge state corruption and forced the investigation back into the
+            underlay path between the host TEP network and the Edge TEP network.
+          </p>
+
+          <h2>The MTU wall</h2>
+          <p>
+            The breakthrough came from testing the host TEP to Edge TEP path
+            directly with the don't-fragment bit set.
+          </p>
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Payload</th>
+                <th>Outer IP frame</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1472 bytes</td>
+                <td>1500 bytes</td>
+                <td>Passed</td>
+              </tr>
+              <tr>
+                <td>1473 bytes</td>
+                <td>1501 bytes</td>
+                <td>Dropped</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            That is as clean as a signal gets. The wall was exactly 1500 bytes.
+            The physical switches were already jumbo-capable, so the constraint
+            had to be at the Layer 3 routing boundary between the host TEP subnet
+            and the Edge TEP subnet.
+          </p>
+          <p>
+            The router in that path was a firewall acting as the gateway for
+            both TEP networks. Its parent aggregate and relevant VLAN
+            sub-interfaces were still at the default 1500-byte MTU.
+          </p>
+
+          <h2>The math</h2>
+          <p>
+            The TLS certificate segment itself was not exotic. It was a normal
+            large TCP payload. The problem was what happened after NSX wrapped it
+            in Geneve.
+          </p>
+          <pre><code>inner TCP data payload        1448 bytes
+inner IP/TCP headers           40 bytes
+Geneve header                   8 bytes
+outer UDP header                8 bytes
+outer IP header                20 bytes
+----------------------------------------
+outer IP frame              ~1538 bytes</code></pre>
+          <p>
+            A 1538-byte outer frame will not cross a 1500-byte routed interface
+            when fragmentation is not available or not acceptable for that flow.
+            The small packets kept working because they fit. The first full TLS
+            certificate record did not.
+          </p>
+          <p>
+            That explained everything: TCP connected, plain HTTP returned a
+            small 400, BFD stayed up, and TLS died at ten seconds.
+          </p>
+
+          <h2>The fix</h2>
+          <p>
+            The fix was to enable jumbo frames on the firewall and set the
+            parent aggregate plus the relevant TEP-facing VLAN interfaces to
+            9000-byte MTU.
+          </p>
+          <pre><code>config system global
+    set jumbo-frame enable
+end
+
+config system interface
+    edit "&lt;fabric-aggregate&gt;"
+        set mtu-override enable
+        set mtu 9000
+    next
+    edit "&lt;edge-tep-vlan-interface&gt;"
+        set mtu-override enable
+        set mtu 9000
+    next
+    edit "&lt;host-tep-vlan-interface&gt;"
+        set mtu-override enable
+        set mtu 9000
+    next
+end</code></pre>
+          <p>
+            After the change, larger don't-fragment tests passed across the TEP
+            path. TLS to the NSX VIP completed. Contour pods came up Running and
+            Ready on the next restart cycle.
+          </p>
+
+          <h2>What we ruled out</h2>
+          <p>
+            This was not a short investigation. Along the way, we ruled out:
+          </p>
+          <ul>
+            <li>Contour RBAC and service-account permissions.</li>
+            <li>Contour CRDs and certificate secret validity.</li>
+            <li>Kubernetes service environment injection.</li>
+            <li>Supervisor API server health on the direct management path.</li>
+            <li>Distributed switch and ESXi vmnic MTU.</li>
+            <li>Physical switch MTU and VLAN trunking.</li>
+            <li>NSX distributed firewall policy.</li>
+            <li>NSX VDR software drops.</li>
+            <li>NSX Edge VM interface MTU.</li>
+            <li>NSX Edge state corruption.</li>
+            <li>MSS clamping as a practical fix in that NSX version.</li>
+          </ul>
+          <p>
+            That list matters because the first three or four answers were
+            reasonable. They were also wrong.
+          </p>
+
+          <h2>The lesson</h2>
+          <p>
+            NSX overlay networks need jumbo frames on every underlay hop that
+            carries encapsulated traffic, including routed firewall interfaces
+            between TEP subnets. It is not enough for the ESXi vmnics,
+            distributed switch, Edge interfaces, and physical switch ports to be
+            correct. The L3 boundary has to be correct too.
+          </p>
+          <p>
+            The failure mode is especially nasty because small packets continue
+            to pass. TCP handshakes work. BFD stays up. Some HTTP tests return
+            responses. The tunnel looks alive. Then the first large TLS record
+            gets Geneve-wrapped, crosses the 1500-byte boundary, and disappears.
+          </p>
+          <p>
+            The misconfiguration had been sitting there quietly. Contour did not
+            create it. Contour found it, because it was the first workload in
+            that environment to exercise the full CRX pod to NSX load-balancer to
+            overlay backend path with a payload large enough to matter.
+          </p>
+        </article>
+      </main>
+
+      <footer class="site-footer">
+        <span>© 2026 Brandon Quantz</span>
+      </footer>
+    </div>
+  </body>
+</html>

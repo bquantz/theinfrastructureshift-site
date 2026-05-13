@@ -21,7 +21,7 @@
           </a>
           <div class="nav-links">
             <a href="#about">About</a>
-            <a href="blog/building-a-private-ai-platform-in-vmware-cloud-foundation-part-1/">Latest</a>
+            <a href="blog/chasing-a-10-second-timeout-contour-mtu/">Latest</a>
             <a href="#focus">Focus</a>
             <a href="mailto:bquantz@gmail.com">Contact</a>
           </div>
@@ -132,6 +132,20 @@
               <div class="post-list">
                 <a
                   class="post-card"
+                  href="blog/chasing-a-10-second-timeout-contour-mtu/"
+                >
+                  <span class="post-meta">May 2026 · Field Notes</span>
+                  <h2 id="latest-posts">
+                    Chasing a 10-Second Timeout: How an MTU Misconfiguration Broke Contour for Five Days
+                  </h2>
+                  <p>
+                    A Contour CrashLoopBackOff looked like a Kubernetes or NSX
+                    load-balancer problem. The root cause was a 1500-byte MTU
+                    boundary silently dropping Geneve-encapsulated TLS payloads.
+                  </p>
+                </a>
+                <a
+                  class="post-card"
                   href="blog/ai-assisted-troubleshooting-evpn-bum-replication/"
                 >
                   <span class="post-meta">May 2026 · Field Notes</span>
@@ -150,7 +164,7 @@
                   href="blog/building-a-private-ai-platform-in-vmware-cloud-foundation-part-1/"
                 >
                   <span class="post-meta">May 2026 · Private AI Foundation</span>
-                  <h2 id="latest-posts">
+                  <h2>
                     Building a Private AI Platform in VMware Cloud Foundation - Part 1
                   </h2>
                   <p>
