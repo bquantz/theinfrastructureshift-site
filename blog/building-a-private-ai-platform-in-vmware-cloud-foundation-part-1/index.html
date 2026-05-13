@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Building a Private AI Platform in VMware Cloud Foundation - Part 1 | Brandon Quantz</title>
+    <meta
+      name="description"
+      content="Why private AI infrastructure matters for organizations that need control, data locality, Kubernetes integration, and operational reality."
+    />
+    <link
+      rel="canonical"
+      href="https://lively-mushroom-071ad5810.7.azurestaticapps.net/blog/building-a-private-ai-platform-in-vmware-cloud-foundation-part-1/"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <nav class="nav" aria-label="Main navigation">
+          <a class="brand" href="/">
+            <strong>Brandon Quantz</strong>
+            <span>Infrastructure architecture notes</span>
+          </a>
+          <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="mailto:bquantz@gmail.com">Contact</a>
+          </div>
+        </nav>
+      </header>
+
+      <main>
+        <header class="article-header">
+          <p class="eyebrow">Private AI Foundation · Part 1</p>
+          <h1>Building a Private AI Platform in VMware Cloud Foundation</h1>
+          <p class="article-summary">
+            Why I am thinking about private AI as an infrastructure platform, not
+            just another way to run a model.
+          </p>
+          <div class="hero-meta">
+            <span>By Brandon Quantz</span>
+            <span>May 2026</span>
+          </div>
+        </header>
+
+        <article class="article">
+          <p class="disclaimer">
+            The views in this post are my own and do not represent my employer.
+            Technical details are generalized and do not disclose customer,
+            proprietary, or confidential information.
+          </p>
+
+          <h2>Why I am building PAIF instead of just calling an API</h2>
+          <p>
+            Most people talking about AI infrastructure today are either building
+            SaaS apps on public cloud APIs or experimenting with consumer GPUs in a
+            homelab.
+          </p>
+          <p>I am somewhere in the middle.</p>
+          <p>
+            I work heavily in private cloud infrastructure, specifically around
+            VMware Cloud Foundation, VMware NSX, Kubernetes, and enterprise
+            infrastructure architecture. Over the last year, I have been building
+            and testing what I call a Private AI Foundation environment.
+          </p>
+          <p>Not a toy demo. Not "run ChatGPT locally on a gaming PC."</p>
+          <p>
+            The idea is an enterprise-style AI platform architecture designed
+            around private infrastructure, GPU acceleration, Kubernetes, workload
+            isolation, multi-tenancy, data locality, and operational reality.
+          </p>
+          <p>The goal is not to compete with hyperscalers.</p>
+          <p>The goal is to answer a more important question:</p>
+          <blockquote>
+            What does AI infrastructure look like for organizations that cannot,
+            or should not, send everything to a public LLM?
+          </blockquote>
+          <p>That is the problem space I am interested in.</p>
+
+          <h2>The hardware changes the conversation</h2>
+          <p>
+            The environments I have been working with are GPU-enabled VMware Cloud
+            Foundation platforms with enterprise virtualization, Kubernetes
+            integration, software-defined networking through VMware NSX, and
+            GPU-aware workload placement.
+          </p>
+          <p>
+            This matters because AI infrastructure changes the assumptions of
+            traditional virtualization.
+          </p>
+          <p>For years, enterprise infrastructure optimized around:</p>
+          <ul>
+            <li>CPU oversubscription</li>
+            <li>VM density</li>
+            <li>storage consolidation</li>
+            <li>east/west VM traffic</li>
+            <li>disaster recovery</li>
+          </ul>
+          <p>AI changes the bottleneck.</p>
+          <p>Now the constraints become:</p>
+          <ul>
+            <li>GPU scheduling</li>
+            <li>VRAM locality</li>
+            <li>PCIe topology</li>
+            <li>storage throughput for model loading</li>
+            <li>inference latency</li>
+            <li>container orchestration</li>
+            <li>data gravity</li>
+            <li>power and cooling</li>
+          </ul>
+          <p>That is a completely different architecture conversation.</p>
+
+          <h2>Why not just use public AI APIs?</h2>
+          <p>I do use external APIs.</p>
+          <p>
+            In many cases, using a managed service such as Azure OpenAI is the
+            correct answer. But there are several problems enterprises are already
+            running into.
+          </p>
+
+          <h3>Data sensitivity</h3>
+          <p>
+            Many organizations are uncomfortable sending financial data, healthcare
+            records, operational documents, internal engineering data, or customer
+            information into external AI systems.
+          </p>
+          <p>
+            Sometimes that concern is regulatory. Sometimes it is contractual.
+            Sometimes it is simply risk management.
+          </p>
+
+          <h3>Cost at scale</h3>
+          <p>Calling APIs is easy at small scale.</p>
+          <p>
+            But once organizations begin embedding documents, running large
+            retrieval pipelines, building agent workflows, processing tickets,
+            summarizing logs, or handling high request volumes, the economics start
+            changing.
+          </p>
+          <p>Inference becomes infrastructure.</p>
+
+          <h3>Latency and control</h3>
+          <p>
+            A private AI platform gives you workload control, model choice,
+            networking control, observability, security boundaries, and integration
+            flexibility.
+          </p>
+          <p>
+            That matters once AI becomes operational infrastructure instead of just
+            an experiment.
+          </p>
+
+          <h2>The architecture direction</h2>
+          <p>
+            One of the biggest misconceptions I see is the idea that private AI
+            means "run a giant frontier model locally."
+          </p>
+          <p>That is usually unrealistic.</p>
+          <p>
+            Even organizations with strong infrastructure teams often do not have
+            enough GPU capacity to efficiently host the newest frontier-scale
+            models internally.
+          </p>
+          <p>Instead, I think the future looks hybrid.</p>
+
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Local infrastructure</th>
+                <th>External AI services</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Embeddings</td>
+                <td>Frontier reasoning</td>
+              </tr>
+              <tr>
+                <td>RAG pipelines</td>
+                <td>Large-scale generation</td>
+              </tr>
+              <tr>
+                <td>Data ingestion</td>
+                <td>Advanced multimodal models</td>
+              </tr>
+              <tr>
+                <td>Classification</td>
+                <td>Massive context windows</td>
+              </tr>
+              <tr>
+                <td>Summarization</td>
+                <td>Specialized reasoning</td>
+              </tr>
+              <tr>
+                <td>Security-sensitive processing</td>
+                <td>Burst capacity</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p>
+            In other words, the private infrastructure becomes the AI operating
+            platform, not necessarily the location of every large model.
+          </p>
+          <p>That distinction matters.</p>
+
+          <h2>Why Kubernetes matters here</h2>
+          <p>
+            Traditional virtualization alone is not enough for modern AI platforms.
+            The orchestration layer matters.
+          </p>
+          <p>
+            That is why I have been spending time testing supervisor patterns,
+            Kubernetes integration, containerized AI services, registry flows,
+            networking models, GPU-aware scheduling, vGPU concepts, and workload
+            isolation strategies inside VMware Cloud Foundation environments.
+          </p>
+          <p>
+            AI workloads increasingly behave more like cloud-native applications
+            than traditional VMs.
+          </p>
+          <p>The operational model shifts toward:</p>
+          <ul>
+            <li>containers</li>
+            <li>pipelines</li>
+            <li>APIs</li>
+            <li>workers</li>
+            <li>vector databases</li>
+            <li>model endpoints</li>
+            <li>orchestration systems</li>
+          </ul>
+          <p>That is a very different mindset from classic virtualization.</p>
+
+          <h2>What this series will cover</h2>
+          <p>
+            Over the next set of posts, I want to document both the technical side
+            and the architectural thinking behind building a private AI platform.
+          </p>
+          <p>Topics will likely include:</p>
+          <ul>
+            <li>designing AI infrastructure on VCF</li>
+            <li>GPU architecture considerations</li>
+            <li>private AI vs. public AI tradeoffs</li>
+            <li>Kubernetes for AI workloads</li>
+            <li>vGPU and workload partitioning</li>
+            <li>AI networking and NSX implications</li>
+            <li>storage considerations for AI</li>
+            <li>RAG architecture patterns</li>
+            <li>operational realities and failure modes</li>
+            <li>what enterprises are getting wrong</li>
+            <li>hybrid AI design patterns</li>
+            <li>AI infrastructure economics</li>
+            <li>where I think this is all heading</li>
+          </ul>
+          <p>
+            I am intentionally writing this from the perspective of an
+            infrastructure architect, not an AI influencer, not a prompt
+            engineering course seller, and not someone pretending enterprise AI is
+            magically simple.
+          </p>
+          <p>Because it is not.</p>
+          <p>
+            But it is becoming one of the most important infrastructure transitions
+            we have seen in a long time.
+          </p>
+          <p>
+            And I think the people who understand both infrastructure and AI
+            systems are going to be in a very interesting position over the next
+            decade.
+          </p>
+        </article>
+      </main>
+
+      <footer class="site-footer">
+        <span>© 2026 Brandon Quantz</span>
+      </footer>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://lively-mushroom-071ad5810.7.azurestaticapps.net/sitemap.xml

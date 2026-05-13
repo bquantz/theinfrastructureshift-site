@@ -1,0 +1,8 @@
+.DS_Store
+Thumbs.db
+.env
+.env.*
+resume.md
+node_modules/
+dist/
+out/
