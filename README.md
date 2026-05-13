@@ -23,18 +23,24 @@ Azure Static Web Apps default hostname:
 lively-mushroom-071ad5810.7.azurestaticapps.net
 ```
 
-Required records:
+Required records for the same A-record pattern used by the other Static Web App:
 
 ```text
 Type: TXT
-Host/Name: @
+Host/Name: _dnsauth
 Value: _iirzp2661edr5r0q8tinfvqjs0m5n3v
 ```
 
 ```text
-Type: ALIAS, ANAME, or flattened CNAME
+Type: TXT
+Host/Name: _dnsauth.www
+Value: _1jej2e6eyjt1ypmbxl48v6j8855cas0
+```
+
+```text
+Type: A
 Host/Name: @
-Value/Target: lively-mushroom-071ad5810.7.azurestaticapps.net
+Value/Target: 64.236.125.137
 ```
 
 ```text
@@ -43,7 +49,7 @@ Host/Name: www
 Value/Target: lively-mushroom-071ad5810.7.azurestaticapps.net
 ```
 
-After the `www` CNAME exists, run:
+After the records propagate, run:
 
 ```powershell
 az staticwebapp hostname set --name brandon-quantz-blog --resource-group rg-brandon-blog --hostname www.theinfrastructureshift.com --validation-method cname-delegation
