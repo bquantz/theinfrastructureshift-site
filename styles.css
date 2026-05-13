@@ -134,6 +134,74 @@ p {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.about-grid {
+  display: grid;
+  gap: 3rem;
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+  margin: 0 auto;
+  max-width: var(--max);
+  padding: 4rem 1.5rem;
+}
+
+.about-grid h2,
+.section-heading h2,
+.contact-band h2 {
+  font-size: clamp(2rem, 4vw, 3.8rem);
+  letter-spacing: 0;
+  line-height: 1;
+  margin-bottom: 0;
+}
+
+.about-copy {
+  color: #cbd5df;
+  display: grid;
+  gap: 1rem;
+}
+
+.about-copy p {
+  font-size: 1.08rem;
+  margin: 0;
+}
+
+.section-stack {
+  display: grid;
+  gap: 2rem;
+  margin: 0 auto;
+  max-width: var(--max);
+  padding: 4rem 1.5rem;
+}
+
+.section-heading {
+  max-width: 720px;
+}
+
+.focus-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.focus-item {
+  background: rgba(16, 21, 27, 0.48);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-height: 15rem;
+  padding: 1.1rem;
+}
+
+.focus-item h3 {
+  color: var(--text);
+  font-size: 1.05rem;
+  line-height: 1.2;
+  margin-bottom: 0.75rem;
+}
+
+.focus-item p {
+  color: var(--muted);
+  font-size: 0.96rem;
+  margin-bottom: 0;
+}
+
 .main-grid {
   display: grid;
   gap: 3rem;
@@ -189,11 +257,45 @@ p {
 }
 
 .site-footer {
+  align-items: center;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--muted);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
   margin: 0 auto;
   max-width: var(--max);
   padding: 1.5rem;
+}
+
+.contact-band {
+  align-items: end;
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin: 0 auto;
+  max-width: var(--max);
+  padding: 4rem 1.5rem;
+}
+
+.contact-band p {
+  color: var(--muted);
+  font-size: 1.08rem;
+  margin: 1rem 0 0;
+  max-width: 650px;
+}
+
+.contact-link {
+  border: 1px solid rgba(116, 180, 216, 0.5);
+  border-radius: 8px;
+  color: var(--accent-strong);
+  display: inline-flex;
+  font-weight: 700;
+  padding: 0.85rem 1rem;
+}
+
+.contact-link:hover {
+  background: rgba(116, 180, 216, 0.08);
 }
 
 .article-header {
@@ -292,7 +394,31 @@ p {
     grid-template-columns: 1fr;
   }
 
+  .about-grid,
+  .contact-band {
+    grid-template-columns: 1fr;
+  }
+
+  .focus-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .hero {
     padding-top: 3.5rem;
+  }
+
+  .site-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 560px) {
+  .focus-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .focus-item {
+    min-height: auto;
   }
 }

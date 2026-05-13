@@ -10,6 +10,50 @@ Production Azure resource:
 - Resource group: `rg-brandon-blog`
 - Subscription: `Merit`
 - Default hostname: `https://lively-mushroom-071ad5810.7.azurestaticapps.net`
+- Target custom domain: `https://theinfrastructureshift.com`
+
+## DNS setup
+
+Current DNS for `theinfrastructureshift.com` points at Squarespace. To move the
+site to Azure Static Web Apps, update DNS at the domain's DNS provider.
+
+Azure Static Web Apps default hostname:
+
+```text
+lively-mushroom-071ad5810.7.azurestaticapps.net
+```
+
+Required records:
+
+```text
+Type: TXT
+Host/Name: @
+Value: _iirzp2661edr5r0q8tinfvqjs0m5n3v
+```
+
+```text
+Type: ALIAS, ANAME, or flattened CNAME
+Host/Name: @
+Value/Target: lively-mushroom-071ad5810.7.azurestaticapps.net
+```
+
+```text
+Type: CNAME
+Host/Name: www
+Value/Target: lively-mushroom-071ad5810.7.azurestaticapps.net
+```
+
+After the `www` CNAME exists, run:
+
+```powershell
+az staticwebapp hostname set --name brandon-quantz-blog --resource-group rg-brandon-blog --hostname www.theinfrastructureshift.com --validation-method cname-delegation
+```
+
+After the apex records propagate, check status with:
+
+```powershell
+az staticwebapp hostname list --name brandon-quantz-blog --resource-group rg-brandon-blog -o table
+```
 
 ## Azure Static Web Apps
 
