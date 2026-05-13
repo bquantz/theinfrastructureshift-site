@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI-Assisted Troubleshooting in a Spine-Leaf Fabric | Brandon Quantz</title>
+    <title>AI-Assisted Troubleshooting in a Spine-Leaf Fabric: When the Agent Was Almost Right | Brandon Quantz</title>
     <meta
       name="description"
       content="A field note on using AI-assisted troubleshooting to diagnose EVPN BUM replication issues between Dell OS10 leaf switches and SONiC/FRR spines."
@@ -32,7 +32,7 @@
       <main>
         <header class="article-header">
           <p class="eyebrow">Field Notes · EVPN Troubleshooting</p>
-          <h1>AI-Assisted Troubleshooting in a Spine-Leaf Fabric</h1>
+          <h1>AI-Assisted Troubleshooting in a Spine-Leaf Fabric: When the Agent Was Almost Right</h1>
           <p class="article-summary">
             What happened when I gave Claude Code visibility into a real lab
             fabric and let it work through an EVPN BUM replication failure.
@@ -51,6 +51,11 @@
           </p>
 
           <h2>The interesting part was not that AI helped</h2>
+          <p>
+            The interesting part was that it confidently reached the wrong
+            conclusion, and one piece of human operational context changed the
+            entire investigation.
+          </p>
           <p>
             I recently used Claude Code with full visibility into a spine-leaf
             lab fabric. Not screenshots. Not pasted snippets. Real access: show
@@ -107,6 +112,31 @@
             was a control-plane-to-data-plane programming failure triggered by a
             missing route attribute.
           </p>
+
+          <figure class="diagnostic-diagram" aria-labelledby="evpn-diagram-title">
+            <figcaption id="evpn-diagram-title">What the fabric was doing</figcaption>
+            <div class="diagram-flow" aria-hidden="true">
+              <span>Dell OS10 Leaf</span>
+              <span class="diagram-arrow">--</span>
+              <span>SONiC/FRR Spine</span>
+              <span class="diagram-arrow">--</span>
+              <span>Dell OS10 Leaf</span>
+            </div>
+            <dl class="diagram-states">
+              <div>
+                <dt>EVPN control plane</dt>
+                <dd>Type-3 IMET route present</dd>
+              </div>
+              <div>
+                <dt>VXLAN data plane</dt>
+                <dd>NVE flood list missing</dd>
+              </div>
+              <div>
+                <dt>Root cause</dt>
+                <dd>Encapsulation Extended Community not re-advertised</dd>
+              </div>
+            </dl>
+          </figure>
 
           <h2>The root cause</h2>
           <p>
