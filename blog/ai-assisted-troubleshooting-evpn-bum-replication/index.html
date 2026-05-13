@@ -20,7 +20,7 @@
         <nav class="nav" aria-label="Main navigation">
           <a class="brand" href="../../">
             <strong>Brandon Quantz</strong>
-            <span>Infrastructure architecture notes</span>
+            <span>Product architecture notes</span>
           </a>
           <div class="nav-links">
             <a href="../../">Home</a>
@@ -34,8 +34,8 @@
           <p class="eyebrow">Field Notes · EVPN Troubleshooting</p>
           <h1>AI-Assisted Troubleshooting in a Spine-Leaf Fabric</h1>
           <p class="article-summary">
-            What happened when I gave an AI coding agent visibility into a real
-            lab fabric and let it work through an EVPN BUM replication failure.
+            What happened when I gave Claude Code visibility into a real lab
+            fabric and let it work through an EVPN BUM replication failure.
           </p>
           <div class="hero-meta">
             <span>By Brandon Quantz</span>
@@ -52,10 +52,11 @@
 
           <h2>The interesting part was not that AI helped</h2>
           <p>
-            I recently used an AI coding agent with full visibility into a
-            spine-leaf lab fabric. It had shell access, could inspect the
-            switches, run show commands, move around the fabric, and take packet
-            captures.
+            I recently used Claude Code with full visibility into a spine-leaf
+            lab fabric. Not screenshots. Not pasted snippets. Real access: show
+            commands, shell output, packet captures, and enough context to move
+            across the fabric instead of waiting for me to feed it one command at
+            a time.
           </p>
           <p>
             The failure involved EVPN BUM replication after replacing Dell OS10
@@ -80,9 +81,9 @@
             worked when the spines were also Dell OS10.
           </p>
           <p>
-            That changed the investigation. With that constraint added, the agent
-            spent another hour working through the control-plane behavior and
-            found the real root cause.
+            That changed the investigation. With that one piece of operational
+            history added, the agent spent another hour working through the
+            control-plane behavior and found the real root cause.
           </p>
 
           <h2>The actual failure</h2>
@@ -217,8 +218,8 @@ clear bgp l2vpn evpn * soft out</code></pre>
 
           <h2>What I learned about using AI this way</h2>
           <p>
-            The lesson was not that the AI agent magically solved the problem.
-            It did not. It spent a long time exploring and still made a bad call.
+            The lesson was not that AI magically solved the problem. It did not.
+            It spent a long time exploring and still made a bad call.
           </p>
           <p>
             The useful part was that it could hold a large operational context,
@@ -239,6 +240,12 @@ clear bgp l2vpn evpn * soft out</code></pre>
             challenge a conclusion, add a missing constraint, and recognize when
             a technically plausible answer does not fit the history of the
             environment.
+          </p>
+          <p>
+            The value was not replacement. It was compression. It compressed the
+            grind of data collection and packet inspection, while the architectural
+            judgment still had to come from someone who knew what the fabric was
+            supposed to be doing.
           </p>
 
           <h2>References</h2>
