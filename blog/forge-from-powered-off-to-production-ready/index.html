@@ -190,6 +190,31 @@
             scrollback that disappeared three rebuilds ago.
           </p>
 
+          <figure class="diagnostic-diagram" aria-labelledby="forge-workflow-title">
+            <figcaption id="forge-workflow-title">Workflow state model</figcaption>
+            <div class="diagram-flow" aria-hidden="true">
+              <span>Hosts</span>
+              <span class="diagram-arrow">--</span>
+              <span>Jobs</span>
+              <span class="diagram-arrow">--</span>
+              <span>Platform</span>
+            </div>
+            <dl class="diagram-states">
+              <div>
+                <dt>Host layer</dt>
+                <dd>Inventory, virtual media, one-time boot, OS install, post-install config</dd>
+              </div>
+              <div>
+                <dt>Job layer</dt>
+                <dd>State, logs, retries, dependencies, and failure reporting</dd>
+              </div>
+              <div>
+                <dt>Platform layer</dt>
+                <dd>VCF, Nutanix, Proxmox, Azure Local, or Linux handoff workflows</dd>
+              </div>
+            </dl>
+          </figure>
+
           <h2>Why it is different</h2>
           <p>
             Forge starts from zero. Not from a running operating system. Not from

@@ -68,6 +68,31 @@
             happy API response. It has to verify what happened on the machine.
           </p>
 
+          <figure class="diagnostic-diagram" aria-labelledby="forge-failure-pattern-title">
+            <figcaption id="forge-failure-pattern-title">The failure pattern</figcaption>
+            <div class="diagram-flow" aria-hidden="true">
+              <span>Success signal</span>
+              <span class="diagram-arrow">--</span>
+              <span>False confidence</span>
+              <span class="diagram-arrow">--</span>
+              <span>Hardware truth</span>
+            </div>
+            <dl class="diagram-states">
+              <div>
+                <dt>API layer</dt>
+                <dd>Redfish returned success while boot-once was not applied</dd>
+              </div>
+              <div>
+                <dt>Installer layer</dt>
+                <dd>Kickstart completed while ESXi ignored the network command</dd>
+              </div>
+              <div>
+                <dt>Job layer</dt>
+                <dd>Forge marked complete before post-install configuration succeeded</dd>
+              </div>
+            </dl>
+          </figure>
+
           <h2>1. Jobs reported complete when they were not</h2>
           <p>
             The first failure was self-inflicted. Jobs showed <code>complete</code>
@@ -84,6 +109,23 @@
             SSH never comes up, the job now fails and returns early. A job is
             only complete when post-install configuration actually runs.
           </p>
+          <figure class="diagnostic-diagram" aria-labelledby="forge-job-state-title">
+            <figcaption id="forge-job-state-title">Job state has to follow outcome</figcaption>
+            <dl class="diagram-states">
+              <div>
+                <dt>Bad model</dt>
+                <dd>Function exits, job becomes complete</dd>
+              </div>
+              <div>
+                <dt>Better model</dt>
+                <dd>SSH reachable, post-install config applied, job becomes complete</dd>
+              </div>
+              <div>
+                <dt>Failure path</dt>
+                <dd>SSH unavailable or config skipped, job becomes failed</dd>
+              </div>
+            </dl>
+          </figure>
           <p>
             That distinction matters. A job engine that reports success because
             the function reached the bottom is not an infrastructure automation
@@ -165,6 +207,30 @@ localcli network vswitch standard portgroup set \
             boot mode and point the one-time UEFI boot device at the iDRAC
             virtual media device discovered from live BIOS attributes.
           </p>
+          <figure class="diagnostic-diagram" aria-labelledby="forge-redfish-title">
+            <figcaption id="forge-redfish-title">Dell iDRAC boot-once path</figcaption>
+            <div class="diagram-flow" aria-hidden="true">
+              <span>Mount virtual media</span>
+              <span class="diagram-arrow">--</span>
+              <span>Patch BIOS settings</span>
+              <span class="diagram-arrow">--</span>
+              <span>Create BIOS job</span>
+            </div>
+            <dl class="diagram-states">
+              <div>
+                <dt>No-op path</dt>
+                <dd>Standard boot override returned success but did not change next boot</dd>
+              </div>
+              <div>
+                <dt>Pending path</dt>
+                <dd>BIOS settings patch queued the change but did not apply it by itself</dd>
+              </div>
+              <div>
+                <dt>Working path</dt>
+                <dd>BIOS settings patch plus Dell OEM job caused the next boot to consume the setting</dd>
+              </div>
+            </dl>
+          </figure>
           <p>
             That still was not enough. On Dell iDRAC, pending BIOS settings need
             a separate BIOS configuration job. Without that job, the settings sit

@@ -164,6 +164,31 @@
           </p>
           <p>Instead, I think the future looks hybrid.</p>
 
+          <figure class="diagnostic-diagram" aria-labelledby="paif-architecture-title">
+            <figcaption id="paif-architecture-title">Private AI Foundation operating model</figcaption>
+            <div class="diagram-flow" aria-hidden="true">
+              <span>Private infrastructure</span>
+              <span class="diagram-arrow">--</span>
+              <span>AI operating platform</span>
+              <span class="diagram-arrow">--</span>
+              <span>External AI services</span>
+            </div>
+            <dl class="diagram-states">
+              <div>
+                <dt>Local</dt>
+                <dd>Embeddings, RAG, data ingestion, classification, sensitive processing</dd>
+              </div>
+              <div>
+                <dt>Platform</dt>
+                <dd>Kubernetes, VCF, NSX, GPU scheduling, observability, workload boundaries</dd>
+              </div>
+              <div>
+                <dt>External</dt>
+                <dd>Frontier reasoning, large-scale generation, multimodal models, burst capacity</dd>
+              </div>
+            </dl>
+          </figure>
+
           <table class="compare-table">
             <thead>
               <tr>
@@ -210,6 +235,23 @@
             Traditional virtualization alone is not enough for modern AI platforms.
             The orchestration layer matters.
           </p>
+          <figure class="diagnostic-diagram" aria-labelledby="paif-stack-title">
+            <figcaption id="paif-stack-title">Where the architecture shifts</figcaption>
+            <dl class="diagram-states">
+              <div>
+                <dt>Classic private cloud</dt>
+                <dd>VM density, storage consolidation, DR, east/west VM traffic</dd>
+              </div>
+              <div>
+                <dt>AI platform layer</dt>
+                <dd>Containers, APIs, pipelines, model endpoints, vector databases, workers</dd>
+              </div>
+              <div>
+                <dt>New constraints</dt>
+                <dd>GPU scheduling, VRAM locality, storage throughput, latency, power, cooling</dd>
+              </div>
+            </dl>
+          </figure>
           <p>
             That is why I have been spending time testing supervisor patterns,
             Kubernetes integration, containerized AI services, registry flows,
