@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Designing PAIF: A Reference Architecture for Tier 3 Private AI | Brandon Quantz</title>
+    <meta
+      name="description"
+      content="A practical reference architecture for a Private AI Foundation on VCF: internal knowledge systems, Tier 3 private question answering, Kubernetes, local inference, policy routing, and hybrid AI."
+    />
+    <link
+      rel="canonical"
+      href="https://theinfrastructureshift.com/blog/designing-paif-reference-architecture-tier-3-private-ai/"
+    />
+    <link rel="stylesheet" href="../../styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <nav class="nav" aria-label="Main navigation">
+          <a class="brand" href="../../">
+            <strong>Brandon Quantz</strong>
+            <span>Product architecture notes</span>
+          </a>
+          <div class="nav-links">
+            <a href="../../">Home</a>
+            <a href="../../topics/private-ai-foundation/">PAIF</a>
+            <a href="mailto:bquantz@gmail.com">Contact</a>
+          </div>
+        </nav>
+      </header>
+
+      <main>
+        <header class="article-header">
+          <p class="eyebrow"><a href="../../topics/private-ai-foundation/">Private AI Foundation</a> · Part 2</p>
+          <h1>Designing PAIF: A Reference Architecture for Tier 3 Private AI</h1>
+          <p class="article-summary">
+            The first useful version of a Private AI Foundation is not a giant
+            local frontier model. It is a controlled platform for private
+            knowledge, local processing, private question answering, and hybrid
+            reasoning when policy allows.
+          </p>
+          <div class="hero-meta">
+            <span>By Brandon Quantz</span>
+            <span>May 2026</span>
+            <span>12 min read</span>
+          </div>
+        </header>
+
+        <article class="article">
+          <p class="disclaimer">
+            The views in this post are my own and do not represent my employer.
+            Technical details are generalized and do not disclose customer,
+            proprietary, or confidential information.
+          </p>
+
+          <h2>Starting with the right problem</h2>
+          <p>
+            In the first post in this series, I wrote about why I am building a
+            Private AI Foundation instead of only calling public AI APIs. This
+            post is the next step: what should the first reference architecture
+            actually look like?
+          </p>
+          <p>
+            I do not think the first useful version of PAIF is an agent platform.
+            I also do not think it should begin by trying to run every possible
+            AI workload locally. That is too broad, too expensive, and too easy
+            to turn into a science project.
+          </p>
+          <p>
+            The first practical use case is an internal knowledge system: a way
+            for teams to ask questions over private documents, runbooks,
+            architecture notes, troubleshooting writeups, tickets, source
+            repositories, and operational knowledge.
+          </p>
+          <p>
+            That is a familiar problem for infrastructure teams. Most
+            organizations already have the knowledge. It is just scattered across
+            SharePoint, internal wikis, GitLab, ServiceNow, design documents,
+            diagrams, and incident notes.
+          </p>
+
+          <h2>The private AI maturity model</h2>
+          <p>
+            One of the mistakes I see in private AI conversations is treating
+            privacy like a yes-or-no property. Either everything runs locally, or
+            the platform is not really private.
+          </p>
+          <p>
+            I think a more useful way to look at it is by asking what stays
+            private.
+          </p>
+
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Tier</th>
+                <th>What stays private</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Tier 1</td>
+                <td>Knowledge base</td>
+              </tr>
+              <tr>
+                <td>Tier 2</td>
+                <td>Knowledge processing</td>
+              </tr>
+              <tr>
+                <td>Tier 3</td>
+                <td>Question answering</td>
+              </tr>
+              <tr>
+                <td>Tier 4</td>
+                <td>Full reasoning</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p>
+            I am intentionally using "knowledge base" here because that maps
+            better to infrastructure language. In AI and NLP language, a
+            collection of documents is often called a corpus. That term is
+            accurate, but it is not how most infrastructure teams talk.
+          </p>
+          <p>
+            PAIF v1 should target Tier 3. The knowledge base stays private. The
+            processing stays private. Sensitive question answering can stay
+            private. Full frontier reasoning remains hybrid.
+          </p>
+          <p>
+            That is an important distinction. Private AI does not have to mean
+            every token is generated on-premises. It means the platform can keep
+            sensitive knowledge and sensitive answers inside the environment when
+            the data classification requires it.
+          </p>
+
+          <h2>The three-plane architecture</h2>
+          <p>
+            The cleanest way I have found to think about PAIF is as three planes:
+            retrieval, model serving, and policy routing.
+          </p>
+
+          <figure class="diagnostic-diagram" aria-labelledby="paif-three-plane-title">
+            <figcaption id="paif-three-plane-title">PAIF reference architecture model</figcaption>
+            <div class="diagram-flow" aria-hidden="true">
+              <span>Retrieval plane</span>
+              <span class="diagram-arrow">--</span>
+              <span>Policy / routing plane</span>
+              <span class="diagram-arrow">--</span>
+              <span>Model-serving plane</span>
+            </div>
+            <dl class="diagram-states">
+              <div>
+                <dt>Retrieval</dt>
+                <dd>Ingestion, chunking, metadata, embeddings, vector search, citations</dd>
+              </div>
+              <div>
+                <dt>Policy</dt>
+                <dd>Sensitivity, allowed model targets, audit, routing decisions</dd>
+              </div>
+              <div>
+                <dt>Model serving</dt>
+                <dd>Local inference, private Q&amp;A, approved external model calls</dd>
+              </div>
+            </dl>
+          </figure>
+
+          <p>
+            This is where PAIF becomes more than a RAG demo. Retrieval finds the
+            right internal context. Policy decides where that context is allowed
+            to go. Model serving generates the answer using either a local model
+            or an approved external model.
+          </p>
+          <p>
+            The point is not to pick local or cloud AI based on ideology. The
+            point is architecture control: deciding where data lives, where
+            inference happens, and when external AI services are appropriate.
+          </p>
+
+          <h2>The retrieval plane</h2>
+          <p>
+            The retrieval plane is where the private knowledge system starts.
+            This is the part that ingests content, extracts text, breaks it into
+            useful chunks, attaches metadata, creates embeddings, and stores a
+            searchable representation.
+          </p>
+          <p>
+            For infrastructure readers, embeddings are easiest to think of as
+            semantic search fingerprints. They let the platform find text that is
+            related in meaning, not only text that matches the same keywords.
+          </p>
+          <p>
+            But embeddings alone are not enough. Without metadata, vector search
+            becomes a kind of vibes search. It may find something similar, but
+            not necessarily something current, allowed, or applicable.
+          </p>
+          <p>
+            A useful PAIF retrieval plane needs enough metadata to know whether a
+            chunk of knowledge is relevant:
+          </p>
+          <ul>
+            <li>source system</li>
+            <li>document type</li>
+            <li>platform or component</li>
+            <li>version</li>
+            <li>environment</li>
+            <li>last updated date</li>
+            <li>sensitivity</li>
+          </ul>
+          <p>
+            For example, a note about NSX TEP networking in VCF 9 should not be
+            treated the same as an old lab note from a different platform
+            version. Both might be semantically similar. Only one may be the
+            right source for the question being asked.
+          </p>
+          <p>
+            The first connector targets for PAIF are the systems where enterprise
+            knowledge already lives: SharePoint, an internal wiki, GitLab, and
+            ServiceNow. I do not want PAIF to become another content repository.
+            Source systems should remain authoritative.
+          </p>
+          <p>
+            PAIF should store what it needs to operate: extracted text, chunks,
+            metadata, vectors, source references, retrieval logs, and audit
+            records. It should not duplicate every document unless there is a
+            specific reason to do so.
+          </p>
+
+          <h2>The model-serving plane</h2>
+          <p>
+            The local GPU layer is not only there to replace external AI. It is
+            there to process private knowledge close to the data, answer locally
+            when the task fits, and reduce whatever needs to leave the
+            environment.
+          </p>
+          <p>
+            In PAIF v1, local model serving should support:
+          </p>
+          <ul>
+            <li>embeddings</li>
+            <li>chunk summaries</li>
+            <li>metadata extraction</li>
+            <li>sensitivity classification</li>
+            <li>local answers for restricted content</li>
+            <li>prompt and context reduction</li>
+            <li>first-pass summaries before a policy-approved external handoff</li>
+          </ul>
+          <p>
+            The last point needs a hard boundary. Sensitive source content should
+            not leave the private environment. If sensitive data is simply
+            summarized and sent to an external model without a clear policy, the
+            private AI story collapses.
+          </p>
+          <p>
+            External models still matter. They may be better for frontier
+            reasoning, long-form synthesis, complex planning, coding, or
+            low-sensitivity requests where policy allows external use. But they
+            should not be the default destination for sensitive source material.
+          </p>
+
+          <h2>The policy and routing plane</h2>
+          <p>
+            The routing decision should happen before model selection.
+          </p>
+          <p>
+            The platform should not start by asking, "Which model is best?" It
+            should start by asking, "Which model targets are allowed?"
+          </p>
+
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Class</th>
+                <th>Meaning</th>
+                <th>Routing</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Public</td>
+                <td>Approved to leave</td>
+                <td>Local or external</td>
+              </tr>
+              <tr>
+                <td>Internal</td>
+                <td>Company or customer internal, not public</td>
+                <td>Usually local; external only by explicit policy</td>
+              </tr>
+              <tr>
+                <td>Restricted</td>
+                <td>Sensitive operational, customer, or security data</td>
+                <td>Local only</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p>
+            That simple model is enough for the first reference architecture. It
+            keeps the hybrid design understandable without turning the first
+            implementation into a full governance product.
+          </p>
+
+          <h2>Why Kubernetes is the runtime</h2>
+          <p>
+            PAIF is not a traditional VM stack with an AI application installed
+            on top. It is a platform made of services: ingestion workers, sync
+            jobs, embedding services, vector search, APIs, model endpoints, user
+            interfaces, policy services, and observability.
+          </p>
+          <p>
+            That points toward Kubernetes as the primary runtime.
+          </p>
+          <p>
+            Kubernetes gives PAIF service discovery, job scheduling, horizontal
+            scaling, secrets management, ingress, persistent volumes, rolling
+            updates, and a natural place to run model endpoints and ingestion
+            workers.
+          </p>
+          <p>
+            In a VCF-focused PAIF design, supportability matters. Deep Learning
+            VMs or AI workstation patterns still have a place for model testing,
+            experimentation, and persistent data science environments. But a
+            shared AI platform pushes the architecture toward Kubernetes-native
+            services and VKS-style workload clusters.
+          </p>
+          <p>
+            VMs are not obsolete in private AI. They are still useful for
+            workstations, appliance-style deployments, and simple persistent
+            services. Kubernetes becomes more compelling when private AI becomes
+            a platform consumed through APIs.
+          </p>
+
+          <h2>Networking, identity, and exposure</h2>
+          <p>
+            PAIF v1 should be internal only.
+          </p>
+          <p>
+            Users and internal applications should consume it through private
+            network paths. The platform needs controlled access to source systems
+            such as SharePoint, the internal wiki, GitLab, and ServiceNow. It
+            also needs tightly controlled outbound access to approved external AI
+            services when policy allows.
+          </p>
+          <p>
+            The platform should expose both a web UI and an API. The UI is how
+            people experience the system first. The API is how it becomes
+            infrastructure.
+          </p>
+          <p>
+            For identity, PAIF should not invent its own user model. It should
+            consume enterprise identity, with Entra ID as the natural default in
+            this design.
+          </p>
+          <p>
+            Full source-system permission trimming is a future maturity step.
+            For v1, the important thing is that user identity is present in every
+            query, every policy decision, and every audit record.
+          </p>
+
+          <h2>Observability and audit</h2>
+          <p>
+            AI observability cannot stop at container logs.
+          </p>
+          <p>
+            PAIF needs to show what happened in the AI path: who asked the
+            question, what sources were retrieved, which model answered, what
+            policy decision was made, whether an external call was allowed or
+            blocked, and what answer came back.
+          </p>
+          <p>
+            In the first iteration, visibility matters more than elegance. PAIF
+            should log the full prompt, retrieved context, answer, model path,
+            and policy decision so the platform can be debugged and improved.
+          </p>
+          <p>
+            Those logs become sensitive data too. As the platform matures, they
+            need access control, retention policy, and eventually redaction.
+          </p>
+
+          <h2>What this reference architecture is not</h2>
+          <p>
+            This first design is intentionally scoped.
+          </p>
+          <p>
+            It is not full enterprise multi-tenancy. It is not a runtime agent
+            platform. It is not trying to replace frontier models. It is not
+            trying to become the system of record for every document. It is not
+            pretending local inference is automatically cheaper than cloud AI.
+          </p>
+          <p>
+            Those are important topics, but they are later maturity steps.
+          </p>
+          <p>
+            The first design target is simpler and more useful:
+          </p>
+          <blockquote>
+            A VCF-based private AI platform that can retrieve internal knowledge,
+            process it locally, answer sensitive questions locally, and route
+            non-sensitive work to external AI services when policy allows.
+          </blockquote>
+          <p>
+            That is the foundation I want to build from.
+          </p>
+        </article>
+      </main>
+
+      <footer class="site-footer">
+        <span>© 2026 Brandon Quantz</span>
+      </footer>
+    </div>
+  </body>
+</html>
