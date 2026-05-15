@@ -124,6 +124,29 @@
             collection of documents is often called a corpus. That term is
             accurate, but it is not how most infrastructure teams talk.
           </p>
+
+          <figure class="diagnostic-diagram" aria-labelledby="paif-tier-model-title">
+            <figcaption id="paif-tier-model-title">Private AI maturity by what stays local</figcaption>
+            <div class="diagram-ladder" aria-hidden="true">
+              <div>
+                <span>Tier 1</span>
+                <strong>Knowledge base</strong>
+              </div>
+              <div>
+                <span>Tier 2</span>
+                <strong>Knowledge processing</strong>
+              </div>
+              <div>
+                <span>Tier 3</span>
+                <strong>Question answering</strong>
+              </div>
+              <div>
+                <span>Tier 4</span>
+                <strong>Full reasoning</strong>
+              </div>
+            </div>
+          </figure>
+
           <p>
             PAIF v1 should target Tier 3. The knowledge base stays private. The
             processing stays private. Sensitive question answering can stay
@@ -179,6 +202,32 @@
             inference happens, and when external AI services are appropriate.
           </p>
 
+          <figure class="diagnostic-diagram" aria-labelledby="paif-tier3-flow-title">
+            <figcaption id="paif-tier3-flow-title">Tier 3 private question-answering path</figcaption>
+            <dl class="diagram-states">
+              <div>
+                <dt>Ask</dt>
+                <dd>User submits a question through the internal UI or API.</dd>
+              </div>
+              <div>
+                <dt>Classify</dt>
+                <dd>Policy checks the user, request, retrieved context, and sensitivity class.</dd>
+              </div>
+              <div>
+                <dt>Retrieve</dt>
+                <dd>The retrieval plane finds cited internal context from the knowledge base.</dd>
+              </div>
+              <div>
+                <dt>Route</dt>
+                <dd>Restricted context stays local; approved lower-sensitivity work may use an external model.</dd>
+              </div>
+              <div>
+                <dt>Answer</dt>
+                <dd>The response returns with citations, model path, and audit trail.</dd>
+              </div>
+            </dl>
+          </figure>
+
           <h2>The retrieval plane</h2>
           <p>
             The retrieval plane is where the private knowledge system starts.
@@ -221,6 +270,29 @@
             ServiceNow. I do not want PAIF to become another content repository.
             Source systems should remain authoritative.
           </p>
+
+          <figure class="diagnostic-diagram" aria-labelledby="paif-retrieval-title">
+            <figcaption id="paif-retrieval-title">Retrieval plane source flow</figcaption>
+            <div class="diagram-grid" aria-hidden="true">
+              <div class="diagram-card">
+                <span>Source systems</span>
+                <strong>SharePoint, Wiki, GitLab, ServiceNow</strong>
+              </div>
+              <div class="diagram-card">
+                <span>Connector layer</span>
+                <strong>Sync, extract, normalize</strong>
+              </div>
+              <div class="diagram-card">
+                <span>Knowledge index</span>
+                <strong>Chunks, metadata, embeddings, vectors</strong>
+              </div>
+              <div class="diagram-card">
+                <span>Retrieval API</span>
+                <strong>Cited context for the model path</strong>
+              </div>
+            </div>
+          </figure>
+
           <p>
             PAIF should store what it needs to operate: extracted text, chunks,
             metadata, vectors, source references, retrieval logs, and audit
@@ -325,6 +397,29 @@
             shared AI platform pushes the architecture toward Kubernetes-native
             services and VKS-style workload clusters.
           </p>
+
+          <figure class="diagnostic-diagram" aria-labelledby="paif-runtime-title">
+            <figcaption id="paif-runtime-title">VCF and Kubernetes runtime view</figcaption>
+            <dl class="diagram-states">
+              <div>
+                <dt>VCF substrate</dt>
+                <dd>Compute, GPU access, storage, NSX networking, lifecycle, operational control</dd>
+              </div>
+              <div>
+                <dt>VKS / workload cluster</dt>
+                <dd>Kubernetes runtime for PAIF application services and model endpoints</dd>
+              </div>
+              <div>
+                <dt>PAIF services</dt>
+                <dd>Ingestion workers, vector search, APIs, UI, policy service, audit logging</dd>
+              </div>
+              <div>
+                <dt>Inference paths</dt>
+                <dd>Local GPU inference for sensitive work; controlled egress for approved external AI calls</dd>
+              </div>
+            </dl>
+          </figure>
+
           <p>
             VMs are not obsolete in private AI. They are still useful for
             workstations, appliance-style deployments, and simple persistent

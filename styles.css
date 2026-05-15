@@ -461,6 +461,45 @@ p {
   margin: 0;
 }
 
+.diagram-ladder {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.diagram-ladder div,
+.diagram-card {
+  background: rgba(2, 6, 23, 0.36);
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  display: grid;
+  gap: 0.35rem;
+  min-height: 6.25rem;
+  padding: 0.9rem;
+}
+
+.diagram-ladder span,
+.diagram-card span {
+  color: var(--accent-strong);
+  font-family:
+    "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.diagram-ladder strong,
+.diagram-card strong {
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.diagram-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .article pre {
   background: #06080b;
   border: 1px solid var(--line);
@@ -533,6 +572,11 @@ p {
 
   .diagram-states div {
     gap: 0.25rem;
+    grid-template-columns: 1fr;
+  }
+
+  .diagram-ladder,
+  .diagram-grid {
     grid-template-columns: 1fr;
   }
 
