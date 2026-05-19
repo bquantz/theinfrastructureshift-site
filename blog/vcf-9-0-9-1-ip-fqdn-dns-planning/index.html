@@ -34,15 +34,16 @@
           <p class="eyebrow"><a href="../../topics/private-ai-foundation/">Private AI Foundation</a> · VCF Operations</p>
           <h1>VCF 9.0 vs 9.1: IP and DNS Planning for Internal Components</h1>
           <p class="article-summary">
-            VCF planning is not just a question of how many IPs the management
-            domain needs. The real question is which layers you are enabling:
-            core management, HA, NSX Edge, VCF Operations, VCF Automation, logs,
-            Kubernetes, and workload domains.
+            The VCF 9.1 planning workbook changes the conversation. Management
+            services are not just another appliance row; the workbook calls for
+            named service endpoints plus a separate VCF Management Services IP
+            range of at least 12 addresses, with 30 recommended for growth and
+            auto-scaling.
           </p>
           <div class="hero-meta">
             <span>By Brandon Quantz</span>
             <span>May 2026</span>
-            <span>10 min read</span>
+            <span>12 min read</span>
           </div>
         </header>
 
@@ -69,6 +70,12 @@
             Which VCF layers am I enabling, and which of those layers create
             management endpoints that need IP addresses, FQDNs, and DNS records?
           </blockquote>
+          <p>
+            The other mistake is treating every VCF 9.1 item like an appliance
+            with one IP and one DNS name. The workbook does not model it that
+            way. It has named endpoints that need DNS, and it also has address
+            ranges that are consumed by the services runtime.
+          </p>
 
           <figure class="diagnostic-diagram" aria-labelledby="vcf-planning-formula-title">
             <figcaption id="vcf-planning-formula-title">VCF IP planning formula</figcaption>
@@ -109,6 +116,91 @@
             uplinks, ingress pools, and egress pools, DNS is usually not the
             point. Those still need clean IP planning, routing, MTU, and VLAN or
             overlay design, but they are normally not appliance FQDNs.
+          </p>
+
+          <h2>What the 9.1 workbook actually says</h2>
+          <p>
+            In the VCF 9.1 Planning and Preparation Workbook, the important row
+            is the <strong>VCF Management Services IP Range</strong>. The note
+            beside that range says to plan a minimum of <strong>12 IPs</strong>
+            for the current scope, or <strong>30 IPs</strong> to allow for more
+            components and auto-scaling.
+          </p>
+          <p>
+            That does not mean 12 to 30 separate DNS names. It means the
+            management services layer needs an address pool. The workbook also
+            lists named management-service endpoints separately.
+          </p>
+
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Workbook item</th>
+                <th>How many IPs to plan</th>
+                <th>What needs DNS</th>
+                <th>What it means operationally</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>VCF Management Services IP Range</td>
+                <td>Minimum <code>12</code>; plan <code>30</code> for more components and auto-scaling</td>
+                <td>No per-address FQDNs listed for the range itself</td>
+                <td>This is a pool/range for the VCF management services runtime, not a list of appliance DNS records</td>
+              </tr>
+              <tr>
+                <td>Fleet components</td>
+                <td><code>1</code></td>
+                <td><code>1</code> FQDN/IP endpoint</td>
+                <td>Named management-service endpoint</td>
+              </tr>
+              <tr>
+                <td>Instance component</td>
+                <td><code>1</code></td>
+                <td><code>1</code> FQDN/IP endpoint</td>
+                <td>Named management-service endpoint</td>
+              </tr>
+              <tr>
+                <td>Identity Broker</td>
+                <td><code>1</code></td>
+                <td><code>1</code> FQDN/IP endpoint</td>
+                <td>Identity service endpoint for the VCF management-services layer</td>
+              </tr>
+              <tr>
+                <td>VCF services runtime</td>
+                <td><code>1</code> named endpoint, plus addresses from the Management Services IP range</td>
+                <td><code>1</code> FQDN/IP endpoint for the runtime</td>
+                <td>The runtime is where several management services run instead of showing up as standalone appliances</td>
+              </tr>
+              <tr>
+                <td>VCF License Server</td>
+                <td><code>1</code></td>
+                <td><code>1</code> FQDN/IP endpoint</td>
+                <td>Named endpoint for the 9.1 licensing service</td>
+              </tr>
+              <tr>
+                <td>VCF Automation IP Range</td>
+                <td>The workbook note says <code>4</code> active node addresses plus <code>1</code> rolling-upgrade address</td>
+                <td>No per-address FQDNs listed for the range itself</td>
+                <td>Separate address range for the VCF services runtime used by VCF Automation</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h2>What are Management Services?</h2>
+          <p>
+            In this context, "Management Services" means the VCF services layer
+            that sits above the base SDDC appliances. The workbook calls out
+            Fleet components, the Instance component, Identity Broker, the VCF
+            services runtime, and the VCF License Server as named entries.
+          </p>
+          <p>
+            The sizing worksheet also makes an important point: components such
+            as Software Depot, lifecycle management, Identity Broker, SALT,
+            Real-time Data, and Log Management are enabled or sized within the
+            VCF management-services/runtime model. In other words, some services
+            consume the runtime and its IP range rather than appearing as a
+            clean one-appliance, one-IP, one-DNS row.
           </p>
 
           <h2>The count model</h2>
@@ -220,15 +312,15 @@
               </tr>
               <tr>
                 <td>VCF Automation, single-node</td>
-                <td><code>1</code> node/endpoint IP</td>
+                <td><code>1</code> endpoint IP, plus the VCF Automation runtime range when using the 9.1 services model</td>
                 <td><code>1</code> FQDN</td>
                 <td>Forward and reverse DNS required</td>
               </tr>
               <tr>
                 <td>VCF Automation, clustered</td>
-                <td>Node IPs + <code>1</code> VIP/endpoint IP</td>
-                <td>Node FQDNs + <code>1</code> VIP/endpoint FQDN</td>
-                <td>Forward and reverse DNS for endpoint and nodes</td>
+                <td>Endpoint/runtime IPs plus the VCF Automation range; workbook note calls out <code>4</code> active node addresses and <code>1</code> rolling-upgrade address</td>
+                <td>Endpoint FQDN; the workbook range itself is not shown as per-node DNS names</td>
+                <td>Forward and reverse DNS for named endpoint(s)</td>
               </tr>
               <tr>
                 <td>VCF Operations for Logs</td>
@@ -237,16 +329,22 @@
                 <td>Forward and reverse DNS for all log nodes and endpoint</td>
               </tr>
               <tr>
-                <td>VCF 9.1 License Server</td>
-                <td><code>1</code> service endpoint IP, or more if HA/service runtime requires it</td>
-                <td><code>1</code> service FQDN, plus node/service DNS if applicable</td>
-                <td>Forward and reverse DNS for the service endpoint</td>
+                <td>VCF 9.1 Management Services range</td>
+                <td>Minimum <code>12</code> IPs; plan <code>30</code> for additional components and auto-scaling</td>
+                <td><code>0</code> per-address DNS names in the workbook for the range itself</td>
+                <td>Reserve the range; do not count it as 12-30 separate appliance DNS records</td>
+              </tr>
+              <tr>
+                <td>VCF 9.1 named Management Services endpoints</td>
+                <td><code>5</code>: Fleet components, Instance component, Identity Broker, VCF services runtime, and VCF License Server</td>
+                <td><code>5</code> FQDN/IP endpoints</td>
+                <td>Forward and reverse DNS for the named service endpoints</td>
               </tr>
               <tr>
                 <td>VCF 9.1 Fleet Depot Service</td>
-                <td><code>1</code> service endpoint IP, or more if HA/service runtime requires it</td>
-                <td><code>1</code> service FQDN, plus node/service DNS if applicable</td>
-                <td>Forward and reverse DNS if consumed by name</td>
+                <td>Plan as part of the management-services/runtime model rather than only as an installer field</td>
+                <td>Use the named endpoint(s) exposed by the deployment</td>
+                <td>Forward and reverse DNS if exposed/consumed by name</td>
               </tr>
               <tr>
                 <td>Supervisor / VKS</td>
@@ -353,6 +451,42 @@
             should work. Add Edges, VCFO, VCFA, Logs, VKS, or another workload
             domain and the count changes immediately.
           </p>
+          <p>
+            For a VCF 9.1 workbook-driven plan, I would not stop at that
+            23-address base. I would add the Management Services items the
+            workbook calls out:
+          </p>
+
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Additional 9.1 item</th>
+                <th>IPs</th>
+                <th>DNS names</th>
+                <th>Planning note</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Named VCF Management Services endpoints</td>
+                <td><code>5</code></td>
+                <td><code>5</code></td>
+                <td>Fleet components, Instance component, Identity Broker, VCF services runtime, and VCF License Server</td>
+              </tr>
+              <tr>
+                <td>VCF Management Services IP Range</td>
+                <td><code>12</code> minimum; <code>30</code> recommended for growth</td>
+                <td><code>0</code> per-address DNS names in the workbook</td>
+                <td>Reserve the range for the runtime/services layer</td>
+              </tr>
+              <tr>
+                <td><strong>9.1 workbook-adjusted starting point</strong></td>
+                <td><strong><code>40</code> to <code>58</code> IPs</strong></td>
+                <td><strong><code>16</code> DNS names</strong></td>
+                <td>Base example plus Management Services endpoints and range</td>
+              </tr>
+            </tbody>
+          </table>
 
           <h2>VCF 9.0 internal IP and DNS requirements</h2>
           <p>
@@ -546,22 +680,22 @@
               <tr>
                 <td>Management services</td>
                 <td>VCF management services / services runtime</td>
-                <td>Service endpoint IP plus any backing service/node IPs required by the deployment model</td>
-                <td>Service endpoint FQDN required; node/service FQDNs as required by implementation</td>
+                <td><code>5</code> named endpoints plus a Management Services IP range of minimum <code>12</code> IPs, or <code>30</code> for growth and auto-scaling</td>
+                <td>DNS for the five named endpoints: Fleet components, Instance component, Identity Broker, VCF services runtime, and VCF License Server. The range itself is not a list of per-address DNS records.</td>
                 <td>When using the 9.1 management services model</td>
               </tr>
               <tr>
                 <td>Management services</td>
                 <td>VCF License Server</td>
-                <td><code>1</code> service endpoint IP, or more if HA/service runtime requires it</td>
-                <td><code>1</code> license service FQDN, plus node/service FQDNs if applicable; forward/reverse DNS</td>
+                <td><code>1</code> named endpoint IP</td>
+                <td><code>1</code> license service FQDN with forward/reverse DNS</td>
                 <td>VCF 9.1 licensing model</td>
               </tr>
               <tr>
                 <td>Management services</td>
                 <td>Fleet Depot Service</td>
-                <td><code>1</code> service endpoint IP, or more if HA/service runtime requires it</td>
-                <td><code>1</code> depot service FQDN, plus node/service FQDNs if applicable; forward/reverse DNS if consumed by name</td>
+                <td>Represented in the services/runtime model rather than just a one-off installer setting</td>
+                <td>Use DNS for whatever named depot/fleet endpoint the deployment exposes</td>
                 <td>When using 9.1 depot/fleet depot workflows</td>
               </tr>
               <tr>
@@ -602,8 +736,8 @@
               <tr>
                 <td>Cloud services</td>
                 <td>VCF Automation</td>
-                <td><code>1</code> for simple, or node IPs plus endpoint/VIP for clustered deployment</td>
-                <td>Endpoint FQDN; clustered deployment also needs node/service FQDNs. Use forward/reverse DNS</td>
+                <td>Named VCFA endpoint(s) plus the VCF Automation IP range; workbook note says <code>4</code> active node addresses and <code>1</code> rolling-upgrade address</td>
+                <td>DNS for named VCFA endpoint(s); the automation range is not listed as per-node DNS records</td>
                 <td>When VCFA is deployed</td>
               </tr>
               <tr>
@@ -681,8 +815,8 @@
               <tr>
                 <td>Management services</td>
                 <td>More appliance-oriented mental model</td>
-                <td>More service-runtime-oriented mental model</td>
-                <td>Runbooks need to track services, not only appliance VMs</td>
+                <td>Named endpoints plus a VCF Management Services IP range</td>
+                <td>Runbooks need to reserve both DNS-backed endpoints and non-DNS service-runtime address pools</td>
               </tr>
               <tr>
                 <td>VCF Operations</td>
@@ -736,9 +870,9 @@ Then ask:
     Add log endpoint and node IPs as needed
 
   VCF 9.1 services required?
-    Add license service endpoint
-    Add depot/fleet depot service endpoint
-    Add management service endpoint(s)
+    Add 5 named Management Services endpoints
+    Reserve VCF Management Services IP Range: 12 minimum, 30 for growth
+    Add VCF Automation endpoint/range if VCFA is deployed
 
   VKS/Supervisor required?
     Add supervisor control plane IPs
@@ -819,10 +953,17 @@ Then ask:
             fleet-level operations. Those services need the same boring but
             critical planning as every other infrastructure endpoint: IPs,
             FQDNs, forward DNS, reverse DNS, certificates, and clear ownership.
+            The important wrinkle is that the VCF Management Services range is
+            not one DNS record per address. It is a service-runtime pool, and
+            the workbook explicitly tells you to reserve at least 12 IPs, or 30
+            if you want room for more components and auto-scaling.
           </p>
 
           <h2>References</h2>
           <ul>
+            <li>
+              VMware Cloud Foundation 9.1 Planning and Preparation Workbook
+            </li>
             <li>
               <a href="https://blogs.vmware.com/cloud-foundation/2025/06/17/modern-infrastructure-operations-vcf-9-0/">Operations in VMware Cloud Foundation 9.0</a>
             </li>
