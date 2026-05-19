@@ -111,6 +111,249 @@
             overlay design, but they are normally not appliance FQDNs.
           </p>
 
+          <h2>The count model</h2>
+          <p>
+            The useful worksheet is not a single static number. It is a set of
+            formulas. This table is the part I would use before filling out a
+            deployment workbook.
+          </p>
+
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Layer</th>
+                <th>IP count formula</th>
+                <th>FQDN / DNS count</th>
+                <th>DNS requirement</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>ESXi management</td>
+                <td><code>N</code> host management IPs</td>
+                <td><code>N</code> host FQDNs</td>
+                <td>Forward and reverse DNS for every host</td>
+              </tr>
+              <tr>
+                <td>VCF Installer</td>
+                <td><code>1</code> appliance IP</td>
+                <td><code>1</code> FQDN</td>
+                <td>Forward and reverse DNS recommended before deployment</td>
+              </tr>
+              <tr>
+                <td>Management vCenter</td>
+                <td><code>1</code> appliance IP</td>
+                <td><code>1</code> FQDN</td>
+                <td>Forward and reverse DNS required</td>
+              </tr>
+              <tr>
+                <td>SDDC Manager / fleet management endpoint</td>
+                <td><code>1</code> management endpoint IP</td>
+                <td><code>1</code> FQDN</td>
+                <td>Forward and reverse DNS required</td>
+              </tr>
+              <tr>
+                <td>NSX Manager, single-node</td>
+                <td><code>1</code> node IP</td>
+                <td><code>1</code> node FQDN</td>
+                <td>Forward and reverse DNS required</td>
+              </tr>
+              <tr>
+                <td>NSX Manager, clustered</td>
+                <td><code>3</code> node IPs + <code>1</code> VIP = <code>4</code> IPs</td>
+                <td><code>3</code> node FQDNs + <code>1</code> VIP FQDN = <code>4</code> DNS names</td>
+                <td>Forward and reverse DNS for nodes and VIP</td>
+              </tr>
+              <tr>
+                <td>vMotion</td>
+                <td><code>N</code> vmkernel IPs</td>
+                <td><code>0</code> normal appliance FQDNs</td>
+                <td>No typical DNS requirement</td>
+              </tr>
+              <tr>
+                <td>vSAN</td>
+                <td><code>N</code> vmkernel IPs</td>
+                <td><code>0</code> normal appliance FQDNs</td>
+                <td>No typical DNS requirement</td>
+              </tr>
+              <tr>
+                <td>Host TEPs</td>
+                <td><code>N x T</code> TEP IPs, where <code>T</code> is TEPs per host</td>
+                <td><code>0</code> normal appliance FQDNs</td>
+                <td>No typical DNS requirement</td>
+              </tr>
+              <tr>
+                <td>NSX Edge management</td>
+                <td><code>E</code> management IPs, one per Edge node</td>
+                <td><code>E</code> Edge FQDNs</td>
+                <td>Forward and reverse DNS recommended for every Edge node</td>
+              </tr>
+              <tr>
+                <td>NSX Edge TEPs</td>
+                <td><code>E x T</code> TEP IPs, where <code>T</code> is TEPs per Edge</td>
+                <td><code>0</code> normal appliance FQDNs</td>
+                <td>No typical DNS requirement</td>
+              </tr>
+              <tr>
+                <td>NSX Edge uplinks</td>
+                <td>Usually <code>E x U</code>, where <code>U</code> is uplinks per Edge</td>
+                <td><code>0</code> normal appliance FQDNs</td>
+                <td>No typical DNS requirement unless exposing a named service</td>
+              </tr>
+              <tr>
+                <td>VCF Operations, single-node</td>
+                <td><code>1</code> node/endpoint IP</td>
+                <td><code>1</code> FQDN</td>
+                <td>Forward and reverse DNS required</td>
+              </tr>
+              <tr>
+                <td>VCF Operations, HA</td>
+                <td>Node IPs + <code>1</code> VIP/endpoint IP</td>
+                <td>Node FQDNs + <code>1</code> VIP/endpoint FQDN</td>
+                <td>Forward and reverse DNS for endpoint and nodes</td>
+              </tr>
+              <tr>
+                <td>VCF Operations Collector</td>
+                <td><code>C</code> collector IPs</td>
+                <td><code>C</code> collector FQDNs</td>
+                <td>Forward and reverse DNS recommended</td>
+              </tr>
+              <tr>
+                <td>VCF Automation, single-node</td>
+                <td><code>1</code> node/endpoint IP</td>
+                <td><code>1</code> FQDN</td>
+                <td>Forward and reverse DNS required</td>
+              </tr>
+              <tr>
+                <td>VCF Automation, clustered</td>
+                <td>Node IPs + <code>1</code> VIP/endpoint IP</td>
+                <td>Node FQDNs + <code>1</code> VIP/endpoint FQDN</td>
+                <td>Forward and reverse DNS for endpoint and nodes</td>
+              </tr>
+              <tr>
+                <td>VCF Operations for Logs</td>
+                <td>Node IPs + optional endpoint/VIP IP</td>
+                <td>Node FQDNs + optional endpoint/VIP FQDN</td>
+                <td>Forward and reverse DNS for all log nodes and endpoint</td>
+              </tr>
+              <tr>
+                <td>VCF 9.1 License Server</td>
+                <td><code>1</code> service endpoint IP, or more if HA/service runtime requires it</td>
+                <td><code>1</code> service FQDN, plus node/service DNS if applicable</td>
+                <td>Forward and reverse DNS for the service endpoint</td>
+              </tr>
+              <tr>
+                <td>VCF 9.1 Fleet Depot Service</td>
+                <td><code>1</code> service endpoint IP, or more if HA/service runtime requires it</td>
+                <td><code>1</code> service FQDN, plus node/service DNS if applicable</td>
+                <td>Forward and reverse DNS if consumed by name</td>
+              </tr>
+              <tr>
+                <td>Supervisor / VKS</td>
+                <td>Control plane IPs + <code>1</code> API endpoint + ingress/egress pools</td>
+                <td>API FQDN + ingress DNS/wildcard as needed</td>
+                <td>Forward DNS required for API and ingress; reverse DNS depends on standard</td>
+              </tr>
+              <tr>
+                <td>Workload domain</td>
+                <td>Repeat the host, vCenter, NSX, Edge, and Kubernetes formulas</td>
+                <td>Repeat appliance/service FQDNs for that domain</td>
+                <td>Same forward/reverse DNS rules as management domain</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h2>Example: a four-host management domain</h2>
+          <p>
+            If I were planning a small four-host management domain with
+            clustered NSX Managers, one TEP per host, vMotion, vSAN, and no
+            Edges, VCFO, VCFA, Logs, or Kubernetes yet, the starting point would
+            look like this:
+          </p>
+
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th>IPs</th>
+                <th>DNS names</th>
+                <th>Forward DNS</th>
+                <th>Reverse DNS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>ESXi management</td>
+                <td><code>4</code></td>
+                <td><code>4</code></td>
+                <td>Yes</td>
+                <td>Yes</td>
+              </tr>
+              <tr>
+                <td>VCF Installer</td>
+                <td><code>1</code></td>
+                <td><code>1</code></td>
+                <td>Recommended</td>
+                <td>Recommended</td>
+              </tr>
+              <tr>
+                <td>Management vCenter</td>
+                <td><code>1</code></td>
+                <td><code>1</code></td>
+                <td>Yes</td>
+                <td>Yes</td>
+              </tr>
+              <tr>
+                <td>SDDC Manager / fleet management endpoint</td>
+                <td><code>1</code></td>
+                <td><code>1</code></td>
+                <td>Yes</td>
+                <td>Yes</td>
+              </tr>
+              <tr>
+                <td>NSX Manager cluster</td>
+                <td><code>4</code>: three nodes plus VIP</td>
+                <td><code>4</code>: three nodes plus VIP</td>
+                <td>Yes</td>
+                <td>Yes</td>
+              </tr>
+              <tr>
+                <td>vMotion</td>
+                <td><code>4</code></td>
+                <td><code>0</code></td>
+                <td>No</td>
+                <td>No</td>
+              </tr>
+              <tr>
+                <td>vSAN</td>
+                <td><code>4</code></td>
+                <td><code>0</code></td>
+                <td>No</td>
+                <td>No</td>
+              </tr>
+              <tr>
+                <td>Host TEPs</td>
+                <td><code>4</code></td>
+                <td><code>0</code></td>
+                <td>No</td>
+                <td>No</td>
+              </tr>
+              <tr>
+                <td><strong>Total</strong></td>
+                <td><strong><code>23</code> IPs</strong></td>
+                <td><strong><code>11</code> DNS names</strong></td>
+                <td><strong><code>11</code> records</strong></td>
+                <td><strong><code>11</code> PTRs</strong></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p>
+            That is not a universal minimum. It is an example of how the math
+            should work. Add Edges, VCFO, VCFA, Logs, VKS, or another workload
+            domain and the count changes immediately.
+          </p>
+
           <h2>VCF 9.0 internal IP and DNS requirements</h2>
           <p>
             VCF 9.0 introduced the fleet model and a more integrated operations
@@ -123,8 +366,8 @@
               <tr>
                 <th>Layer</th>
                 <th>Component</th>
-                <th>IP planning</th>
-                <th>DNS planning</th>
+                <th>How many IPs</th>
+                <th>What needs DNS</th>
                 <th>Required when</th>
               </tr>
             </thead>
@@ -132,113 +375,113 @@
               <tr>
                 <td>Base management domain</td>
                 <td>ESXi management vmk</td>
-                <td>One management IP per host</td>
-                <td>Forward and reverse DNS per host</td>
+                <td><code>N</code>, one management IP per host</td>
+                <td><code>N</code> host FQDNs with forward and reverse DNS</td>
                 <td>Always</td>
               </tr>
               <tr>
                 <td>Base management domain</td>
                 <td>VCF Installer appliance</td>
-                <td>One appliance IP</td>
-                <td>Forward and reverse DNS strongly recommended</td>
+                <td><code>1</code></td>
+                <td><code>1</code> appliance FQDN; forward/reverse DNS strongly recommended</td>
                 <td>Initial deployment / bring-up</td>
               </tr>
               <tr>
                 <td>Base management domain</td>
                 <td>Management vCenter</td>
-                <td>One appliance IP</td>
-                <td>Forward and reverse DNS required</td>
+                <td><code>1</code></td>
+                <td><code>1</code> vCenter FQDN with forward and reverse DNS</td>
                 <td>Always</td>
               </tr>
               <tr>
                 <td>Base management domain</td>
                 <td>SDDC Manager / VCF Operations Fleet Management</td>
-                <td>One management endpoint, plus any appliance-specific management IPs</td>
-                <td>Forward and reverse DNS for management endpoints</td>
+                <td><code>1</code> primary management endpoint, plus any appliance-specific service IPs</td>
+                <td>Primary endpoint FQDN and any appliance/service FQDNs; forward/reverse DNS</td>
                 <td>Always for VCF-managed lifecycle/fleet operations</td>
               </tr>
               <tr>
                 <td>Base management domain</td>
                 <td>NSX Manager</td>
-                <td>One node or three nodes, plus VIP if clustered</td>
-                <td>Forward and reverse DNS for nodes and VIP/FQDN</td>
+                <td><code>1</code> for single-node, or <code>4</code> for clustered: three nodes plus VIP</td>
+                <td>Single-node: one FQDN. Clustered: three node FQDNs plus VIP FQDN, all forward/reverse DNS</td>
                 <td>Always when NSX is part of the domain</td>
               </tr>
               <tr>
                 <td>Host infrastructure</td>
                 <td>vMotion vmk</td>
-                <td>One IP per host, usually from a dedicated subnet</td>
-                <td>Usually no FQDN requirement</td>
+                <td><code>N</code>, one IP per host</td>
+                <td>No normal FQDN requirement</td>
                 <td>Always in most VCF designs</td>
               </tr>
               <tr>
                 <td>Host infrastructure</td>
                 <td>vSAN vmk</td>
-                <td>One IP per host, usually from a dedicated subnet</td>
-                <td>Usually no FQDN requirement</td>
+                <td><code>N</code>, one IP per host</td>
+                <td>No normal FQDN requirement</td>
                 <td>When vSAN is used</td>
               </tr>
               <tr>
                 <td>Host infrastructure</td>
                 <td>Host TEPs</td>
-                <td>One or more TEP IPs per host from an IP pool</td>
+                <td><code>N x T</code>, where <code>T</code> is TEPs per host</td>
                 <td>No normal FQDN requirement</td>
                 <td>When NSX overlay networking is used</td>
               </tr>
               <tr>
                 <td>Cloud services</td>
                 <td>VCF Operations</td>
-                <td>Simple or HA endpoint depending deployment model</td>
-                <td>Endpoint FQDN, plus node DNS if clustered</td>
+                <td><code>1</code> for simple, or node IPs plus endpoint/VIP for HA</td>
+                <td>Endpoint FQDN; HA also needs node FQDNs. Use forward/reverse DNS</td>
                 <td>When deployed as part of the fleet</td>
               </tr>
               <tr>
                 <td>Cloud services</td>
                 <td>VCF Operations Collector</td>
-                <td>One or more collector IPs depending scale/topology</td>
-                <td>Forward and reverse DNS recommended</td>
+                <td><code>C</code>, one IP per collector</td>
+                <td><code>C</code> collector FQDNs; forward/reverse DNS recommended</td>
                 <td>When using remote or dedicated collectors</td>
               </tr>
               <tr>
                 <td>Cloud services</td>
                 <td>VCF Automation</td>
-                <td>Simple or clustered appliance/service endpoint</td>
-                <td>Endpoint FQDN, plus node DNS if clustered</td>
+                <td><code>1</code> for simple, or node IPs plus endpoint/VIP for clustered deployment</td>
+                <td>Endpoint FQDN; clustered deployment also needs node FQDNs. Use forward/reverse DNS</td>
                 <td>When VCFA is deployed</td>
               </tr>
               <tr>
                 <td>Cloud services</td>
                 <td>VCF Operations for Logs</td>
-                <td>Node IPs and endpoint/VIP depending deployment model</td>
-                <td>Endpoint FQDN, plus node DNS if clustered</td>
+                <td>Node IPs, plus endpoint/VIP IP if clustered or load-balanced</td>
+                <td>Log endpoint FQDN and node FQDNs; forward/reverse DNS</td>
                 <td>When logs are deployed</td>
               </tr>
               <tr>
                 <td>Network services</td>
                 <td>NSX Edge management</td>
-                <td>One management IP per Edge node</td>
-                <td>Forward and reverse DNS recommended</td>
+                <td><code>E</code>, one management IP per Edge node</td>
+                <td><code>E</code> Edge management FQDNs; forward/reverse DNS recommended</td>
                 <td>When Edges are deployed</td>
               </tr>
               <tr>
                 <td>Network services</td>
                 <td>NSX Edge TEPs and uplinks</td>
-                <td>TEP pool plus uplink IPs based on routing design</td>
+                <td><code>E x T</code> Edge TEP IPs plus <code>E x U</code> uplink IPs</td>
                 <td>No normal FQDN requirement</td>
                 <td>When Edges provide north-south or routed services</td>
               </tr>
               <tr>
                 <td>Kubernetes</td>
                 <td>Supervisor / VKS</td>
-                <td>Control plane IPs, API endpoint, ingress/egress pools</td>
-                <td>API endpoint DNS and usually ingress DNS/wildcard planning</td>
+                <td>Control plane IPs plus <code>1</code> API endpoint, ingress pool, and egress pool</td>
+                <td>API endpoint FQDN required; ingress DNS or wildcard usually required</td>
                 <td>When Kubernetes is enabled</td>
               </tr>
               <tr>
                 <td>Expansion</td>
                 <td>VI workload domains</td>
-                <td>Repeat host, vCenter, NSX, Edge, and Kubernetes choices</td>
-                <td>Repeat appliance FQDN/PTR requirements</td>
+                <td>Repeat the formulas for hosts, vCenter, NSX, Edges, and Kubernetes</td>
+                <td>Repeat appliance/service FQDN and forward/reverse DNS requirements</td>
                 <td>For each workload domain</td>
               </tr>
             </tbody>
@@ -259,8 +502,8 @@
               <tr>
                 <th>Layer</th>
                 <th>Component</th>
-                <th>IP planning</th>
-                <th>DNS planning</th>
+                <th>How many IPs</th>
+                <th>What needs DNS</th>
                 <th>Required when</th>
               </tr>
             </thead>
@@ -268,134 +511,134 @@
               <tr>
                 <td>Base management domain</td>
                 <td>ESXi management vmk</td>
-                <td>One management IP per host</td>
-                <td>Forward and reverse DNS per host</td>
+                <td><code>N</code>, one management IP per host</td>
+                <td><code>N</code> host FQDNs with forward and reverse DNS</td>
                 <td>Always</td>
               </tr>
               <tr>
                 <td>Base management domain</td>
                 <td>VCF Installer appliance</td>
-                <td>One appliance IP</td>
-                <td>Forward and reverse DNS strongly recommended</td>
+                <td><code>1</code></td>
+                <td><code>1</code> appliance FQDN; forward/reverse DNS strongly recommended</td>
                 <td>Initial deployment / bring-up</td>
               </tr>
               <tr>
                 <td>Base management domain</td>
                 <td>Management vCenter</td>
-                <td>One appliance IP</td>
-                <td>Forward and reverse DNS required</td>
+                <td><code>1</code></td>
+                <td><code>1</code> vCenter FQDN with forward and reverse DNS</td>
                 <td>Always</td>
               </tr>
               <tr>
                 <td>Base management domain</td>
                 <td>SDDC Manager / VCF Operations Fleet Management</td>
-                <td>One management endpoint, plus appliance/service management IPs</td>
-                <td>Forward and reverse DNS for management endpoints</td>
+                <td><code>1</code> primary management endpoint, plus any appliance-specific service IPs</td>
+                <td>Primary endpoint FQDN and any appliance/service FQDNs; forward/reverse DNS</td>
                 <td>Always for VCF-managed lifecycle/fleet operations</td>
               </tr>
               <tr>
                 <td>Base management domain</td>
                 <td>NSX Manager</td>
-                <td>One node or three nodes, plus VIP if clustered</td>
-                <td>Forward and reverse DNS for nodes and VIP/FQDN</td>
+                <td><code>1</code> for single-node, or <code>4</code> for clustered: three nodes plus VIP</td>
+                <td>Single-node: one FQDN. Clustered: three node FQDNs plus VIP FQDN, all forward/reverse DNS</td>
                 <td>Always when NSX is part of the domain</td>
               </tr>
               <tr>
                 <td>Management services</td>
                 <td>VCF management services / services runtime</td>
-                <td>Service endpoint and backing service IPs depend on deployment model</td>
-                <td>Service endpoint DNS required; node/service DNS depends on implementation</td>
+                <td>Service endpoint IP plus any backing service/node IPs required by the deployment model</td>
+                <td>Service endpoint FQDN required; node/service FQDNs as required by implementation</td>
                 <td>When using the 9.1 management services model</td>
               </tr>
               <tr>
                 <td>Management services</td>
                 <td>VCF License Server</td>
-                <td>One service endpoint or appliance/service IP set</td>
-                <td>Forward and reverse DNS for the service endpoint</td>
+                <td><code>1</code> service endpoint IP, or more if HA/service runtime requires it</td>
+                <td><code>1</code> license service FQDN, plus node/service FQDNs if applicable; forward/reverse DNS</td>
                 <td>VCF 9.1 licensing model</td>
               </tr>
               <tr>
                 <td>Management services</td>
                 <td>Fleet Depot Service</td>
-                <td>Service endpoint/IPs depend on online/offline depot design</td>
-                <td>Endpoint DNS required when consumed by name</td>
+                <td><code>1</code> service endpoint IP, or more if HA/service runtime requires it</td>
+                <td><code>1</code> depot service FQDN, plus node/service FQDNs if applicable; forward/reverse DNS if consumed by name</td>
                 <td>When using 9.1 depot/fleet depot workflows</td>
               </tr>
               <tr>
                 <td>Host infrastructure</td>
                 <td>vMotion vmk</td>
-                <td>One IP per host, usually from a dedicated subnet</td>
-                <td>Usually no FQDN requirement</td>
+                <td><code>N</code>, one IP per host</td>
+                <td>No normal FQDN requirement</td>
                 <td>Always in most VCF designs</td>
               </tr>
               <tr>
                 <td>Host infrastructure</td>
                 <td>vSAN vmk</td>
-                <td>One IP per host, usually from a dedicated subnet</td>
-                <td>Usually no FQDN requirement</td>
+                <td><code>N</code>, one IP per host</td>
+                <td>No normal FQDN requirement</td>
                 <td>When vSAN is used</td>
               </tr>
               <tr>
                 <td>Host infrastructure</td>
                 <td>Host TEPs</td>
-                <td>One or more TEP IPs per host from an IP pool</td>
+                <td><code>N x T</code>, where <code>T</code> is TEPs per host</td>
                 <td>No normal FQDN requirement</td>
                 <td>When NSX overlay networking is used</td>
               </tr>
               <tr>
                 <td>Cloud services</td>
                 <td>VCF Operations</td>
-                <td>Simple or HA endpoint depending deployment model</td>
-                <td>Endpoint FQDN, plus node DNS if clustered</td>
+                <td><code>1</code> for simple, or node IPs plus endpoint/VIP for HA</td>
+                <td>Endpoint FQDN; HA also needs node FQDNs. Use forward/reverse DNS</td>
                 <td>When VCFO is deployed</td>
               </tr>
               <tr>
                 <td>Cloud services</td>
                 <td>VCF Operations Collector</td>
-                <td>One or more collector IPs depending scale/topology</td>
-                <td>Forward and reverse DNS recommended</td>
+                <td><code>C</code>, one IP per collector</td>
+                <td><code>C</code> collector FQDNs; forward/reverse DNS recommended</td>
                 <td>When using remote or dedicated collectors</td>
               </tr>
               <tr>
                 <td>Cloud services</td>
                 <td>VCF Automation</td>
-                <td>Simple or clustered service endpoint</td>
-                <td>Endpoint FQDN, plus node/service DNS as required</td>
+                <td><code>1</code> for simple, or node IPs plus endpoint/VIP for clustered deployment</td>
+                <td>Endpoint FQDN; clustered deployment also needs node/service FQDNs. Use forward/reverse DNS</td>
                 <td>When VCFA is deployed</td>
               </tr>
               <tr>
                 <td>Cloud services</td>
                 <td>VCF Operations for Logs</td>
-                <td>Node IPs and endpoint/VIP depending deployment model</td>
-                <td>Endpoint FQDN, plus node DNS if clustered</td>
+                <td>Node IPs, plus endpoint/VIP IP if clustered or load-balanced</td>
+                <td>Log endpoint FQDN and node FQDNs; forward/reverse DNS</td>
                 <td>When logs are deployed</td>
               </tr>
               <tr>
                 <td>Network services</td>
                 <td>NSX Edge management</td>
-                <td>One management IP per Edge node</td>
-                <td>Forward and reverse DNS recommended</td>
+                <td><code>E</code>, one management IP per Edge node</td>
+                <td><code>E</code> Edge management FQDNs; forward/reverse DNS recommended</td>
                 <td>When Edges are deployed</td>
               </tr>
               <tr>
                 <td>Network services</td>
                 <td>NSX Edge TEPs and uplinks</td>
-                <td>TEP pool plus uplink IPs based on routing design</td>
+                <td><code>E x T</code> Edge TEP IPs plus <code>E x U</code> uplink IPs</td>
                 <td>No normal FQDN requirement</td>
                 <td>When Edges provide north-south or routed services</td>
               </tr>
               <tr>
                 <td>Kubernetes</td>
                 <td>Supervisor / VKS</td>
-                <td>Control plane IPs, API endpoint, ingress/egress pools</td>
-                <td>API endpoint DNS and usually ingress DNS/wildcard planning</td>
+                <td>Control plane IPs plus <code>1</code> API endpoint, ingress pool, and egress pool</td>
+                <td>API endpoint FQDN required; ingress DNS or wildcard usually required</td>
                 <td>When Kubernetes is enabled</td>
               </tr>
               <tr>
                 <td>Expansion</td>
                 <td>VI workload domains</td>
-                <td>Repeat host, vCenter, NSX, Edge, and Kubernetes choices</td>
-                <td>Repeat appliance FQDN/PTR requirements</td>
+                <td>Repeat the formulas for hosts, vCenter, NSX, Edges, and Kubernetes</td>
+                <td>Repeat appliance/service FQDN and forward/reverse DNS requirements</td>
                 <td>For each workload domain</td>
               </tr>
             </tbody>
