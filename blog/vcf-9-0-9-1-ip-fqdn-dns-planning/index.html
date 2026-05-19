@@ -48,12 +48,66 @@
         </header>
 
         <article class="article">
-          <p class="disclaimer">
-            This post is about internal IP address and DNS planning for VCF
-            components. It is not an external firewall allowlist for Broadcom,
-            VMware, Dell, or CDN endpoints. Exact counts vary by topology, HA
-            choices, service selection, and workload-domain design.
+          <h2>The short version</h2>
+          <p>
+            VCF IP planning is easiest to understand as layers. Start with the
+            base SDDC components, add the VCF 9.1 management-services layer,
+            then add optional cloud services and repeat the pattern for workload
+            domains.
           </p>
+
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Rule</th>
+                <th>Practical answer</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>DNS</td>
+                <td>If the workbook lists an FQDN, create both an A record and a PTR record.</td>
+              </tr>
+              <tr>
+                <td>Ranges</td>
+                <td>IP ranges and pools are reserved capacity, not DNS objects by themselves.</td>
+              </tr>
+              <tr>
+                <td>VCF Management Services</td>
+                <td>Plan five named endpoints plus a Management Services IP range: 12 minimum, 30 recommended.</td>
+              </tr>
+              <tr>
+                <td>Expansion</td>
+                <td>Every workload domain repeats host, vCenter, NSX, Edge, and Kubernetes choices.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <figure class="diagnostic-diagram" aria-labelledby="vcf-layer-map-title">
+            <figcaption id="vcf-layer-map-title">Component layers to count</figcaption>
+            <div class="diagram-ladder" aria-hidden="true">
+              <div>
+                <span>Layer 1</span>
+                <strong>Base SDDC</strong>
+                <p>ESXi hosts, VCF Installer, vCenter, SDDC Manager, NSX Manager</p>
+              </div>
+              <div>
+                <span>Layer 2</span>
+                <strong>VCF 9.1 services</strong>
+                <p>Fleet, Instance, Identity Broker, services runtime, License Server, IP range</p>
+              </div>
+              <div>
+                <span>Layer 3</span>
+                <strong>Optional services</strong>
+                <p>VCFO, VCFA, logs, Edges, VKS, AVI, collectors, ingress and egress pools</p>
+              </div>
+              <div>
+                <span>Layer 4</span>
+                <strong>Workload domains</strong>
+                <p>Repeat host, vCenter, NSX, Edge, VKS, and service endpoint planning</p>
+              </div>
+            </div>
+          </figure>
 
           <h2>The planning mistake</h2>
           <p>
