@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VCF 9.1 Depot Setup: From Download Tokens to Activation Codes | Brandon Quantz</title>
+    <meta
+      name="description"
+      content="A practical look at how VMware Cloud Foundation repository and depot setup changed from VCF 9.0 to 9.1, including download tokens, Software Depot Registration, Download Service IDs, activation codes, and offline depot behavior."
+    />
+    <link
+      rel="canonical"
+      href="https://theinfrastructureshift.com/blog/vcf-9-1-repository-setup-download-tokens-to-activation-codes/"
+    />
+    <link rel="stylesheet" href="../../styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <nav class="nav" aria-label="Main navigation">
+          <a class="brand" href="../../">
+            <strong>Brandon Quantz</strong>
+            <span>Product architecture notes</span>
+          </a>
+          <div class="nav-links">
+            <a href="../../">Home</a>
+            <a href="mailto:bquantz@gmail.com">Contact</a>
+          </div>
+        </nav>
+      </header>
+
+      <main>
+        <header class="article-header">
+          <p class="eyebrow"><a href="../../topics/private-ai-foundation/">Private AI Foundation</a> · VCF Operations</p>
+          <h1>VCF 9.1 Depot Setup: From Download Tokens to Activation Codes</h1>
+          <p class="article-summary">
+            VMware Cloud Foundation 9.1 changes the repository conversation in
+            a way that is easy to miss if you are used to the VCF 9.0 installer.
+            The old online depot flow was centered on a download token. The new
+            flow introduces Software Depot Registration, a Download Service ID,
+            and an activation code.
+          </p>
+          <div class="hero-meta">
+            <span>By Brandon Quantz</span>
+            <span>May 2026</span>
+            <span>8 min read</span>
+          </div>
+        </header>
+
+        <article class="article">
+          <p class="disclaimer">
+            Screenshots are from a lab workflow and have been redacted. The
+            point of this post is the operational difference between VCF 9.0 and
+            VCF 9.1 depot setup, not the specific values from any environment.
+          </p>
+
+          <h2>The change that surprised me</h2>
+          <p>
+            I expected VCF 9.1 repository setup to feel mostly like VCF 9.0 with
+            a newer version number. That was not quite true. The repository and
+            depot mechanics are close enough to feel familiar, but different
+            enough that muscle memory can send you looking in the wrong place.
+          </p>
+          <p>
+            In VCF 9.0, connecting the installer to the online depot was a direct
+            token-based workflow. You generated or copied a Broadcom download
+            token and entered it in the VCF Installer depot settings.
+          </p>
+          <p>
+            In VCF 9.1, the online depot workflow is more explicitly tied to the
+            VCF portal. You register a software depot, receive an activation
+            code, and use that with the Download Service ID shown in the
+            installer.
+          </p>
+
+          <figure class="diagnostic-diagram" aria-labelledby="repo-shift-title">
+            <figcaption id="repo-shift-title">The operational shift</figcaption>
+            <div class="diagram-flow" aria-hidden="true">
+              <span>VCF 9.0</span>
+              <span class="diagram-arrow">--</span>
+              <span>Download token</span>
+              <span class="diagram-arrow">--</span>
+              <span>Installer depot connection</span>
+            </div>
+            <div class="diagram-flow diagram-flow-secondary" aria-hidden="true">
+              <span>VCF 9.1</span>
+              <span class="diagram-arrow">--</span>
+              <span>Software Depot Registration</span>
+              <span class="diagram-arrow">--</span>
+              <span>Download Service ID + activation code</span>
+            </div>
+          </figure>
+
+          <h2>VCF 9.0: the download-token model</h2>
+          <p>
+            The VCF 9.0 flow is straightforward. The installer asks for a
+            Download Token from the Broadcom Support Portal. Once authenticated,
+            the installer can talk to the online depot and download the required
+            VCF and vSphere Foundation binaries.
+          </p>
+          <p>
+            That does not mean repository setup was always painless, but the
+            identity object you cared about was obvious: get the download token,
+            paste it into the installer, authenticate, and move on.
+          </p>
+
+          <figure class="article-screenshot">
+            <img
+              src="../../assets/vcf-9-1-depot/broadcom-download-token-redacted-cropped.png"
+              alt="Broadcom portal Generate Download Token page with token values redacted"
+            />
+            <figcaption>
+              VCF 9.0-era online depot access centered on Broadcom download
+              tokens. Values in the token table are redacted.
+            </figcaption>
+          </figure>
+
+          <h2>VCF 9.1: registration first, activation second</h2>
+          <p>
+            VCF 9.1 introduces a different mental model. Instead of treating the
+            installer as the only place where the depot connection is defined,
+            the workflow starts in the VCF portal. The portal has a Software
+            Depot Registration workflow that represents the on-premises depot
+            consumer.
+          </p>
+          <p>
+            After registration, the portal generates an activation code. Back in
+            the VCF Installer, the Online Depot dialog shows a Download Service
+            ID and asks for that activation code. The installer is no longer
+            just asking, "What is your download token?" It is asking you to bind
+            this installer-side depot service to a portal-side registration.
+          </p>
+
+          <figure class="article-screenshot">
+            <img
+              src="../../assets/vcf-9-1-depot/vcf-91-activation-code-redacted.png"
+              alt="VCF portal Software Depot Successfully Registered dialog with activation code redacted"
+            />
+            <figcaption>
+              In the VCF 9.1 portal flow, Software Depot Registration generates
+              the activation code used by the installer. The code is redacted.
+            </figcaption>
+          </figure>
+
+          <figure class="article-screenshot">
+            <img
+              src="../../assets/vcf-9-1-depot/vcf-91-online-depot-redacted.png"
+              alt="VCF 9.1 Online Depot dialog with Download Service ID and Activation Code fields redacted"
+            />
+            <figcaption>
+              The VCF 9.1 installer asks for an activation code and displays a
+              Download Service ID. Both values are redacted here.
+            </figcaption>
+          </figure>
+
+          <h2>The comparison</h2>
+          <p>
+            The difference is small if you only describe it as "authenticate to
+            the depot." It is much clearer when you look at what object is being
+            handled by the operator.
+          </p>
+
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Area</th>
+                <th>VCF 9.0</th>
+                <th>VCF 9.1</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Online depot credential</td>
+                <td>Download Token</td>
+                <td>Activation Code tied to a Download Service ID</td>
+              </tr>
+              <tr>
+                <td>Where the workflow starts</td>
+                <td>VCF Installer depot settings</td>
+                <td>VCF portal Software Depot Registration</td>
+              </tr>
+              <tr>
+                <td>Operator action</td>
+                <td>Generate or copy a token and authenticate the installer</td>
+                <td>Register the depot, copy the activation code, and activate the installer-side depot service</td>
+              </tr>
+              <tr>
+                <td>What can trip you up</td>
+                <td>Looking for the right token and entitlement path</td>
+                <td>Looking for a token when the installer is actually waiting on a portal registration flow</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h2>Why this matters operationally</h2>
+          <p>
+            This is the kind of change that matters during an install because it
+            happens before the interesting architecture work starts. If the depot
+            is not connected, you are not downloading binaries. If you are not
+            downloading binaries, bring-up does not move.
+          </p>
+          <p>
+            It also matters for documentation and runbooks. A VCF 9.0 runbook
+            that says "enter the download token" is not specific enough for VCF
+            9.1. The VCF 9.1 runbook needs to say where the software depot is
+            registered, who has access to that portal workflow, where the
+            activation code is retrieved, and how that maps to the Download
+            Service ID visible in the installer.
+          </p>
+
+          <h2>Offline depot changed too</h2>
+          <p>
+            The online workflow is not the only repository-related change. VCF
+            9.1 also changes the offline depot story with the Fleet Depot Service
+            and improved HTTP offline depot support. That matters for connected
+            sites, disconnected sites, and environments where repository access
+            has to be staged, proxied, mirrored, or controlled.
+          </p>
+          <p>
+            The practical takeaway is that repository design is becoming more of
+            a platform service in VCF, not just a one-time installer field. That
+            is a good direction, but it means operators need to be precise about
+            which version they are documenting.
+          </p>
+
+          <figure class="diagnostic-diagram" aria-labelledby="repo-design-title">
+            <figcaption id="repo-design-title">How I think about the VCF 9.1 depot path</figcaption>
+            <div class="diagram-grid">
+              <div class="diagram-card">
+                <span>Portal</span>
+                <strong>Register software depot and generate activation code</strong>
+              </div>
+              <div class="diagram-card">
+                <span>Installer</span>
+                <strong>Use Download Service ID and activation code</strong>
+              </div>
+              <div class="diagram-card">
+                <span>Online</span>
+                <strong>Download binaries from the Broadcom depot</strong>
+              </div>
+              <div class="diagram-card">
+                <span>Offline</span>
+                <strong>Plan around Fleet Depot Service and staged content</strong>
+              </div>
+            </div>
+          </figure>
+
+          <h2>What I would put in a runbook</h2>
+          <p>
+            For VCF 9.1, I would not document this as "configure the depot" and
+            leave it there. I would split it into explicit checks:
+          </p>
+          <ul>
+            <li>Confirm who has access to the VCF portal tenant.</li>
+            <li>Register the Software Depot before trying to activate the installer.</li>
+            <li>Capture the activation code at registration time.</li>
+            <li>Match the activation code to the Download Service ID shown by the installer.</li>
+            <li>Document whether the environment uses online depot access, offline depot access, or both.</li>
+            <li>For disconnected or controlled environments, document the Fleet Depot Service path separately from the installer UI path.</li>
+          </ul>
+
+          <h2>The lesson</h2>
+          <p>
+            VCF 9.1 did not just move a field around in the UI. It changed the
+            operating model for repository setup. The 9.0 pattern was token
+            driven. The 9.1 pattern is registration and activation driven.
+          </p>
+          <p>
+            That is the part worth writing down. When the repository setup
+            changes, the install runbook changes. The screenshots matter because
+            the new VCF portal is still fresh, and most infrastructure teams are
+            going to learn this workflow while they are already trying to get an
+            environment built.
+          </p>
+
+          <h2>References</h2>
+          <ul>
+            <li>
+              <a href="https://blogs.vmware.com/cloud-foundation/2026/05/05/scale-simplify-and-secure-your-private-cloud-operations-with-vcf-9-1/">VMware Cloud Foundation 9.1 operations announcement</a>
+            </li>
+            <li>
+              <a href="https://williamlam.com/2026/05/vcf-9-1-new-http-offline-depot-support-for-vcf-installer-fleet-depot-service.html">William Lam: VCF 9.1 HTTP offline depot support for VCF Installer and Fleet Depot Service</a>
+            </li>
+            <li>
+              <a href="https://knowledge.broadcom.com/external/article/421477/error-connect-to-an-offline-depot-with-a.html">Broadcom KB 421477: Offline depot behavior and VCF 9.1 notes</a>
+            </li>
+          </ul>
+        </article>
+      </main>
+
+      <footer class="site-footer">
+        <span>© 2026 Brandon Quantz</span>
+        <span>theinfrastructureshift.com</span>
+      </footer>
+    </div>
+  </body>
+</html>

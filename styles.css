@@ -396,6 +396,27 @@ p {
   padding-left: 1rem;
 }
 
+.article-screenshot {
+  background: rgba(15, 23, 42, 0.58);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 2rem 0;
+  overflow: hidden;
+}
+
+.article-screenshot img {
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
+.article-screenshot figcaption {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 0.85rem 1rem;
+}
+
 .diagnostic-diagram {
   background: rgba(15, 23, 42, 0.58);
   border: 1px solid var(--line);
@@ -429,6 +450,10 @@ p {
   border: 1px solid rgba(148, 163, 184, 0.34);
   padding: 0.75rem;
   text-align: center;
+}
+
+.diagram-flow-secondary {
+  margin-top: 0.75rem;
 }
 
 .diagram-arrow {

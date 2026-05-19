@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://theinfrastructureshift.com/</loc>
-    <lastmod>2026-05-12</lastmod>
+    <lastmod>2026-05-19</lastmod>
   </url>
   <url>
     <loc>https://theinfrastructureshift.com/topics/forge/</loc>
@@ -14,7 +14,7 @@
   </url>
   <url>
     <loc>https://theinfrastructureshift.com/topics/private-ai-foundation/</loc>
-    <lastmod>2026-05-13</lastmod>
+    <lastmod>2026-05-19</lastmod>
   </url>
   <url>
     <loc>https://theinfrastructureshift.com/blog/building-a-private-ai-platform-in-vmware-cloud-foundation-part-1/</loc>
@@ -23,6 +23,10 @@
   <url>
     <loc>https://theinfrastructureshift.com/blog/designing-paif-reference-architecture-tier-3-private-ai/</loc>
     <lastmod>2026-05-15</lastmod>
+  </url>
+  <url>
+    <loc>https://theinfrastructureshift.com/blog/vcf-9-1-repository-setup-download-tokens-to-activation-codes/</loc>
+    <lastmod>2026-05-19</lastmod>
   </url>
   <url>
     <loc>https://theinfrastructureshift.com/blog/ai-assisted-troubleshooting-evpn-bum-replication/</loc>
