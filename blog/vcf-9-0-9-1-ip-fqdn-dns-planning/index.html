@@ -104,18 +104,24 @@
 
           <h2>DNS rules before the tables</h2>
           <p>
-            For appliance management endpoints, assume forward and reverse DNS
-            are required unless you have a specific reason and product document
-            that says otherwise. The deployment tooling may accept an IP address
-            in some places, but certificate generation, identity integration,
-            lifecycle, logging, and troubleshooting all become cleaner when DNS
-            is correct from the start.
+            The workbook gives a cleaner rule than my first version of this
+            post did: create <strong>PTR and A records for all FQDNs</strong>
+            listed in the Management Domain Creation, Workload Domain Creation,
+            and Cluster Creation sections.
+          </p>
+          <p>
+            That is the rule I would use for the worksheet. If the workbook asks
+            for an FQDN, DNS needs to resolve both directions:
+            <strong>A record</strong> from FQDN to IP, and
+            <strong>PTR record</strong> from IP back to FQDN.
           </p>
           <p>
             For infrastructure data-plane addresses like TEPs, vMotion, vSAN,
             uplinks, ingress pools, and egress pools, DNS is usually not the
             point. Those still need clean IP planning, routing, MTU, and VLAN or
-            overlay design, but they are normally not appliance FQDNs.
+            overlay design, but they are normally not appliance FQDNs. An IP
+            range in the workbook is reserved address capacity, not a DNS
+            requirement by itself.
           </p>
 
           <h2>What the 9.1 workbook actually says</h2>
@@ -145,43 +151,43 @@
               <tr>
                 <td>VCF Management Services IP Range</td>
                 <td>Minimum <code>12</code>; plan <code>30</code> for more components and auto-scaling</td>
-                <td>No per-address FQDNs listed for the range itself</td>
+                <td>No per-address A/PTR records unless a specific FQDN is listed</td>
                 <td>This is a pool/range for the VCF management services runtime, not a list of appliance DNS records</td>
               </tr>
               <tr>
                 <td>Fleet components</td>
                 <td><code>1</code></td>
-                <td><code>1</code> FQDN/IP endpoint</td>
+                <td><code>1</code> FQDN/IP endpoint with A and PTR records</td>
                 <td>Named management-service endpoint</td>
               </tr>
               <tr>
                 <td>Instance component</td>
                 <td><code>1</code></td>
-                <td><code>1</code> FQDN/IP endpoint</td>
+                <td><code>1</code> FQDN/IP endpoint with A and PTR records</td>
                 <td>Named management-service endpoint</td>
               </tr>
               <tr>
                 <td>Identity Broker</td>
                 <td><code>1</code></td>
-                <td><code>1</code> FQDN/IP endpoint</td>
+                <td><code>1</code> FQDN/IP endpoint with A and PTR records</td>
                 <td>Identity service endpoint for the VCF management-services layer</td>
               </tr>
               <tr>
                 <td>VCF services runtime</td>
                 <td><code>1</code> named endpoint, plus addresses from the Management Services IP range</td>
-                <td><code>1</code> FQDN/IP endpoint for the runtime</td>
+                <td><code>1</code> FQDN/IP endpoint for the runtime with A and PTR records</td>
                 <td>The runtime is where several management services run instead of showing up as standalone appliances</td>
               </tr>
               <tr>
                 <td>VCF License Server</td>
                 <td><code>1</code></td>
-                <td><code>1</code> FQDN/IP endpoint</td>
+                <td><code>1</code> FQDN/IP endpoint with A and PTR records</td>
                 <td>Named endpoint for the 9.1 licensing service</td>
               </tr>
               <tr>
                 <td>VCF Automation IP Range</td>
                 <td>The workbook note says <code>4</code> active node addresses plus <code>1</code> rolling-upgrade address</td>
-                <td>No per-address FQDNs listed for the range itself</td>
+                <td>No per-address A/PTR records unless a specific FQDN is listed</td>
                 <td>Separate address range for the VCF services runtime used by VCF Automation</td>
               </tr>
             </tbody>
@@ -331,14 +337,14 @@
               <tr>
                 <td>VCF 9.1 Management Services range</td>
                 <td>Minimum <code>12</code> IPs; plan <code>30</code> for additional components and auto-scaling</td>
-                <td><code>0</code> per-address DNS names in the workbook for the range itself</td>
+                <td><code>0</code> per-address A/PTR records in the workbook for the range itself</td>
                 <td>Reserve the range; do not count it as 12-30 separate appliance DNS records</td>
               </tr>
               <tr>
                 <td>VCF 9.1 named Management Services endpoints</td>
                 <td><code>5</code>: Fleet components, Instance component, Identity Broker, VCF services runtime, and VCF License Server</td>
                 <td><code>5</code> FQDN/IP endpoints</td>
-                <td>Forward and reverse DNS for the named service endpoints</td>
+                <td>A and PTR records for the named service endpoints</td>
               </tr>
               <tr>
                 <td>VCF 9.1 Fleet Depot Service</td>
@@ -476,7 +482,7 @@
               <tr>
                 <td>VCF Management Services IP Range</td>
                 <td><code>12</code> minimum; <code>30</code> recommended for growth</td>
-                <td><code>0</code> per-address DNS names in the workbook</td>
+                <td><code>0</code> per-address A/PTR records in the workbook</td>
                 <td>Reserve the range for the runtime/services layer</td>
               </tr>
               <tr>
@@ -681,14 +687,14 @@
                 <td>Management services</td>
                 <td>VCF management services / services runtime</td>
                 <td><code>5</code> named endpoints plus a Management Services IP range of minimum <code>12</code> IPs, or <code>30</code> for growth and auto-scaling</td>
-                <td>DNS for the five named endpoints: Fleet components, Instance component, Identity Broker, VCF services runtime, and VCF License Server. The range itself is not a list of per-address DNS records.</td>
+                <td>A and PTR records for the five named endpoints: Fleet components, Instance component, Identity Broker, VCF services runtime, and VCF License Server. The range itself is not a list of per-address DNS records.</td>
                 <td>When using the 9.1 management services model</td>
               </tr>
               <tr>
                 <td>Management services</td>
                 <td>VCF License Server</td>
                 <td><code>1</code> named endpoint IP</td>
-                <td><code>1</code> license service FQDN with forward/reverse DNS</td>
+                <td><code>1</code> license service FQDN with A and PTR records</td>
                 <td>VCF 9.1 licensing model</td>
               </tr>
               <tr>
@@ -737,7 +743,7 @@
                 <td>Cloud services</td>
                 <td>VCF Automation</td>
                 <td>Named VCFA endpoint(s) plus the VCF Automation IP range; workbook note says <code>4</code> active node addresses and <code>1</code> rolling-upgrade address</td>
-                <td>DNS for named VCFA endpoint(s); the automation range is not listed as per-node DNS records</td>
+                <td>A and PTR records for named VCFA endpoint(s); the automation range is not listed as per-node DNS records</td>
                 <td>When VCFA is deployed</td>
               </tr>
               <tr>
@@ -952,7 +958,7 @@ Then ask:
             services: licensing, depot, management services, activation, and
             fleet-level operations. Those services need the same boring but
             critical planning as every other infrastructure endpoint: IPs,
-            FQDNs, forward DNS, reverse DNS, certificates, and clear ownership.
+            FQDNs, A records, PTR records, certificates, and clear ownership.
             The important wrinkle is that the VCF Management Services range is
             not one DNS record per address. It is a service-runtime pool, and
             the workbook explicitly tells you to reserve at least 12 IPs, or 30
