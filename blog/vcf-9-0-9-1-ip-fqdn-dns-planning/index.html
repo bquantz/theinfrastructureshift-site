@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VCF 9.0 vs 9.1: IP and DNS Planning for Internal Components | Brandon Quantz</title>
+    <meta
+      name="description"
+      content="A practical planning guide for internal IP addresses, FQDNs, and DNS records needed by VMware Cloud Foundation 9.0 and 9.1 components."
+    />
+    <link
+      rel="canonical"
+      href="https://theinfrastructureshift.com/blog/vcf-9-0-9-1-ip-fqdn-dns-planning/"
+    />
+    <link rel="stylesheet" href="../../styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <nav class="nav" aria-label="Main navigation">
+          <a class="brand" href="../../">
+            <strong>Brandon Quantz</strong>
+            <span>Product architecture notes</span>
+          </a>
+          <div class="nav-links">
+            <a href="../../">Home</a>
+            <a href="mailto:bquantz@gmail.com">Contact</a>
+          </div>
+        </nav>
+      </header>
+
+      <main>
+        <header class="article-header">
+          <p class="eyebrow"><a href="../../topics/private-ai-foundation/">Private AI Foundation</a> · VCF Operations</p>
+          <h1>VCF 9.0 vs 9.1: IP and DNS Planning for Internal Components</h1>
+          <p class="article-summary">
+            VCF planning is not just a question of how many IPs the management
+            domain needs. The real question is which layers you are enabling:
+            core management, HA, NSX Edge, VCF Operations, VCF Automation, logs,
+            Kubernetes, and workload domains.
+          </p>
+          <div class="hero-meta">
+            <span>By Brandon Quantz</span>
+            <span>May 2026</span>
+            <span>10 min read</span>
+          </div>
+        </header>
+
+        <article class="article">
+          <p class="disclaimer">
+            This post is about internal IP address and DNS planning for VCF
+            components. It is not an external firewall allowlist for Broadcom,
+            VMware, Dell, or CDN endpoints. Exact counts vary by topology, HA
+            choices, service selection, and workload-domain design.
+          </p>
+
+          <h2>The planning mistake</h2>
+          <p>
+            The wrong question is, "How many IPs does VCF need?" That sounds
+            simple, but it breaks down almost immediately. A small management
+            domain without Edges, Automation, Logs, or Kubernetes is a very
+            different planning exercise from a full VCF fleet with HA services,
+            workload domains, NSX Edge clusters, and VKS.
+          </p>
+          <p>
+            The better question is:
+          </p>
+          <blockquote>
+            Which VCF layers am I enabling, and which of those layers create
+            management endpoints that need IP addresses, FQDNs, and DNS records?
+          </blockquote>
+
+          <figure class="diagnostic-diagram" aria-labelledby="vcf-planning-formula-title">
+            <figcaption id="vcf-planning-formula-title">VCF IP planning formula</figcaption>
+            <div class="diagram-flow" aria-hidden="true">
+              <span>Base management domain</span>
+              <span class="diagram-arrow">+</span>
+              <span>Optional services</span>
+              <span class="diagram-arrow">+</span>
+              <span>Workload domain repeats</span>
+            </div>
+            <dl class="diagram-states">
+              <div>
+                <dt>Baseline</dt>
+                <dd>Hosts, installer, vCenter, SDDC Manager/fleet management, NSX management</dd>
+              </div>
+              <div>
+                <dt>Conditional</dt>
+                <dd>VCF Operations, Automation, Logs, Edges, VKS, license/depot services</dd>
+              </div>
+              <div>
+                <dt>Repeating</dt>
+                <dd>Every workload domain adds its own host, vCenter, NSX, Edge, and Kubernetes choices</dd>
+              </div>
+            </dl>
+          </figure>
+
+          <h2>DNS rules before the tables</h2>
+          <p>
+            For appliance management endpoints, assume forward and reverse DNS
+            are required unless you have a specific reason and product document
+            that says otherwise. The deployment tooling may accept an IP address
+            in some places, but certificate generation, identity integration,
+            lifecycle, logging, and troubleshooting all become cleaner when DNS
+            is correct from the start.
+          </p>
+          <p>
+            For infrastructure data-plane addresses like TEPs, vMotion, vSAN,
+            uplinks, ingress pools, and egress pools, DNS is usually not the
+            point. Those still need clean IP planning, routing, MTU, and VLAN or
+            overlay design, but they are normally not appliance FQDNs.
+          </p>
+
+          <h2>VCF 9.0 internal IP and DNS requirements</h2>
+          <p>
+            VCF 9.0 introduced the fleet model and a more integrated operations
+            experience. From an IP/DNS perspective, I would plan it in these
+            layers.
+          </p>
+
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Layer</th>
+                <th>Component</th>
+                <th>IP planning</th>
+                <th>DNS planning</th>
+                <th>Required when</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Base management domain</td>
+                <td>ESXi management vmk</td>
+                <td>One management IP per host</td>
+                <td>Forward and reverse DNS per host</td>
+                <td>Always</td>
+              </tr>
+              <tr>
+                <td>Base management domain</td>
+                <td>VCF Installer appliance</td>
+                <td>One appliance IP</td>
+                <td>Forward and reverse DNS strongly recommended</td>
+                <td>Initial deployment / bring-up</td>
+              </tr>
+              <tr>
+                <td>Base management domain</td>
+                <td>Management vCenter</td>
+                <td>One appliance IP</td>
+                <td>Forward and reverse DNS required</td>
+                <td>Always</td>
+              </tr>
+              <tr>
+                <td>Base management domain</td>
+                <td>SDDC Manager / VCF Operations Fleet Management</td>
+                <td>One management endpoint, plus any appliance-specific management IPs</td>
+                <td>Forward and reverse DNS for management endpoints</td>
+                <td>Always for VCF-managed lifecycle/fleet operations</td>
+              </tr>
+              <tr>
+                <td>Base management domain</td>
+                <td>NSX Manager</td>
+                <td>One node or three nodes, plus VIP if clustered</td>
+                <td>Forward and reverse DNS for nodes and VIP/FQDN</td>
+                <td>Always when NSX is part of the domain</td>
+              </tr>
+              <tr>
+                <td>Host infrastructure</td>
+                <td>vMotion vmk</td>
+                <td>One IP per host, usually from a dedicated subnet</td>
+                <td>Usually no FQDN requirement</td>
+                <td>Always in most VCF designs</td>
+              </tr>
+              <tr>
+                <td>Host infrastructure</td>
+                <td>vSAN vmk</td>
+                <td>One IP per host, usually from a dedicated subnet</td>
+                <td>Usually no FQDN requirement</td>
+                <td>When vSAN is used</td>
+              </tr>
+              <tr>
+                <td>Host infrastructure</td>
+                <td>Host TEPs</td>
+                <td>One or more TEP IPs per host from an IP pool</td>
+                <td>No normal FQDN requirement</td>
+                <td>When NSX overlay networking is used</td>
+              </tr>
+              <tr>
+                <td>Cloud services</td>
+                <td>VCF Operations</td>
+                <td>Simple or HA endpoint depending deployment model</td>
+                <td>Endpoint FQDN, plus node DNS if clustered</td>
+                <td>When deployed as part of the fleet</td>
+              </tr>
+              <tr>
+                <td>Cloud services</td>
+                <td>VCF Operations Collector</td>
+                <td>One or more collector IPs depending scale/topology</td>
+                <td>Forward and reverse DNS recommended</td>
+                <td>When using remote or dedicated collectors</td>
+              </tr>
+              <tr>
+                <td>Cloud services</td>
+                <td>VCF Automation</td>
+                <td>Simple or clustered appliance/service endpoint</td>
+                <td>Endpoint FQDN, plus node DNS if clustered</td>
+                <td>When VCFA is deployed</td>
+              </tr>
+              <tr>
+                <td>Cloud services</td>
+                <td>VCF Operations for Logs</td>
+                <td>Node IPs and endpoint/VIP depending deployment model</td>
+                <td>Endpoint FQDN, plus node DNS if clustered</td>
+                <td>When logs are deployed</td>
+              </tr>
+              <tr>
+                <td>Network services</td>
+                <td>NSX Edge management</td>
+                <td>One management IP per Edge node</td>
+                <td>Forward and reverse DNS recommended</td>
+                <td>When Edges are deployed</td>
+              </tr>
+              <tr>
+                <td>Network services</td>
+                <td>NSX Edge TEPs and uplinks</td>
+                <td>TEP pool plus uplink IPs based on routing design</td>
+                <td>No normal FQDN requirement</td>
+                <td>When Edges provide north-south or routed services</td>
+              </tr>
+              <tr>
+                <td>Kubernetes</td>
+                <td>Supervisor / VKS</td>
+                <td>Control plane IPs, API endpoint, ingress/egress pools</td>
+                <td>API endpoint DNS and usually ingress DNS/wildcard planning</td>
+                <td>When Kubernetes is enabled</td>
+              </tr>
+              <tr>
+                <td>Expansion</td>
+                <td>VI workload domains</td>
+                <td>Repeat host, vCenter, NSX, Edge, and Kubernetes choices</td>
+                <td>Repeat appliance FQDN/PTR requirements</td>
+                <td>For each workload domain</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h2>VCF 9.1 internal IP and DNS requirements</h2>
+          <p>
+            VCF 9.1 keeps the same basic infrastructure shape, but the planning
+            worksheet gets more service-oriented. The major difference is not
+            that vCenter or NSX suddenly disappear. The difference is that VCF
+            management services, licensing, depot, and activation workflows
+            become more visible as platform services that also need to be
+            planned.
+          </p>
+
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Layer</th>
+                <th>Component</th>
+                <th>IP planning</th>
+                <th>DNS planning</th>
+                <th>Required when</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Base management domain</td>
+                <td>ESXi management vmk</td>
+                <td>One management IP per host</td>
+                <td>Forward and reverse DNS per host</td>
+                <td>Always</td>
+              </tr>
+              <tr>
+                <td>Base management domain</td>
+                <td>VCF Installer appliance</td>
+                <td>One appliance IP</td>
+                <td>Forward and reverse DNS strongly recommended</td>
+                <td>Initial deployment / bring-up</td>
+              </tr>
+              <tr>
+                <td>Base management domain</td>
+                <td>Management vCenter</td>
+                <td>One appliance IP</td>
+                <td>Forward and reverse DNS required</td>
+                <td>Always</td>
+              </tr>
+              <tr>
+                <td>Base management domain</td>
+                <td>SDDC Manager / VCF Operations Fleet Management</td>
+                <td>One management endpoint, plus appliance/service management IPs</td>
+                <td>Forward and reverse DNS for management endpoints</td>
+                <td>Always for VCF-managed lifecycle/fleet operations</td>
+              </tr>
+              <tr>
+                <td>Base management domain</td>
+                <td>NSX Manager</td>
+                <td>One node or three nodes, plus VIP if clustered</td>
+                <td>Forward and reverse DNS for nodes and VIP/FQDN</td>
+                <td>Always when NSX is part of the domain</td>
+              </tr>
+              <tr>
+                <td>Management services</td>
+                <td>VCF management services / services runtime</td>
+                <td>Service endpoint and backing service IPs depend on deployment model</td>
+                <td>Service endpoint DNS required; node/service DNS depends on implementation</td>
+                <td>When using the 9.1 management services model</td>
+              </tr>
+              <tr>
+                <td>Management services</td>
+                <td>VCF License Server</td>
+                <td>One service endpoint or appliance/service IP set</td>
+                <td>Forward and reverse DNS for the service endpoint</td>
+                <td>VCF 9.1 licensing model</td>
+              </tr>
+              <tr>
+                <td>Management services</td>
+                <td>Fleet Depot Service</td>
+                <td>Service endpoint/IPs depend on online/offline depot design</td>
+                <td>Endpoint DNS required when consumed by name</td>
+                <td>When using 9.1 depot/fleet depot workflows</td>
+              </tr>
+              <tr>
+                <td>Host infrastructure</td>
+                <td>vMotion vmk</td>
+                <td>One IP per host, usually from a dedicated subnet</td>
+                <td>Usually no FQDN requirement</td>
+                <td>Always in most VCF designs</td>
+              </tr>
+              <tr>
+                <td>Host infrastructure</td>
+                <td>vSAN vmk</td>
+                <td>One IP per host, usually from a dedicated subnet</td>
+                <td>Usually no FQDN requirement</td>
+                <td>When vSAN is used</td>
+              </tr>
+              <tr>
+                <td>Host infrastructure</td>
+                <td>Host TEPs</td>
+                <td>One or more TEP IPs per host from an IP pool</td>
+                <td>No normal FQDN requirement</td>
+                <td>When NSX overlay networking is used</td>
+              </tr>
+              <tr>
+                <td>Cloud services</td>
+                <td>VCF Operations</td>
+                <td>Simple or HA endpoint depending deployment model</td>
+                <td>Endpoint FQDN, plus node DNS if clustered</td>
+                <td>When VCFO is deployed</td>
+              </tr>
+              <tr>
+                <td>Cloud services</td>
+                <td>VCF Operations Collector</td>
+                <td>One or more collector IPs depending scale/topology</td>
+                <td>Forward and reverse DNS recommended</td>
+                <td>When using remote or dedicated collectors</td>
+              </tr>
+              <tr>
+                <td>Cloud services</td>
+                <td>VCF Automation</td>
+                <td>Simple or clustered service endpoint</td>
+                <td>Endpoint FQDN, plus node/service DNS as required</td>
+                <td>When VCFA is deployed</td>
+              </tr>
+              <tr>
+                <td>Cloud services</td>
+                <td>VCF Operations for Logs</td>
+                <td>Node IPs and endpoint/VIP depending deployment model</td>
+                <td>Endpoint FQDN, plus node DNS if clustered</td>
+                <td>When logs are deployed</td>
+              </tr>
+              <tr>
+                <td>Network services</td>
+                <td>NSX Edge management</td>
+                <td>One management IP per Edge node</td>
+                <td>Forward and reverse DNS recommended</td>
+                <td>When Edges are deployed</td>
+              </tr>
+              <tr>
+                <td>Network services</td>
+                <td>NSX Edge TEPs and uplinks</td>
+                <td>TEP pool plus uplink IPs based on routing design</td>
+                <td>No normal FQDN requirement</td>
+                <td>When Edges provide north-south or routed services</td>
+              </tr>
+              <tr>
+                <td>Kubernetes</td>
+                <td>Supervisor / VKS</td>
+                <td>Control plane IPs, API endpoint, ingress/egress pools</td>
+                <td>API endpoint DNS and usually ingress DNS/wildcard planning</td>
+                <td>When Kubernetes is enabled</td>
+              </tr>
+              <tr>
+                <td>Expansion</td>
+                <td>VI workload domains</td>
+                <td>Repeat host, vCenter, NSX, Edge, and Kubernetes choices</td>
+                <td>Repeat appliance FQDN/PTR requirements</td>
+                <td>For each workload domain</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h2>What changed from 9.0 to 9.1</h2>
+          <p>
+            The clean way to compare 9.0 and 9.1 is not to pretend every
+            component changed. Most of the core infrastructure planning remains
+            familiar: hosts need management IPs, vCenter needs DNS, NSX needs
+            management endpoints, and workload domains repeat the pattern.
+          </p>
+          <p>
+            The difference is that VCF 9.1 gives more weight to services that
+            sit above the core SDDC layer.
+          </p>
+
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Area</th>
+                <th>VCF 9.0 planning view</th>
+                <th>VCF 9.1 planning view</th>
+                <th>Why it matters</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Repository / depot</td>
+                <td>Installer/depot configuration is a setup task</td>
+                <td>Fleet Depot Service and activation workflows become more visible</td>
+                <td>Plan depot as a platform service, not only an installer field</td>
+              </tr>
+              <tr>
+                <td>Licensing</td>
+                <td>License handling is less visible in the IP worksheet</td>
+                <td>VCF License Server becomes a planning item</td>
+                <td>New service endpoint needs IP/FQDN/DNS consideration</td>
+              </tr>
+              <tr>
+                <td>Management services</td>
+                <td>More appliance-oriented mental model</td>
+                <td>More service-runtime-oriented mental model</td>
+                <td>Runbooks need to track services, not only appliance VMs</td>
+              </tr>
+              <tr>
+                <td>VCF Operations</td>
+                <td>Fleet management and operations are central to 9.0</td>
+                <td>Still central, with more 9.1 platform-service integration</td>
+                <td>VCFO endpoint planning remains important</td>
+              </tr>
+              <tr>
+                <td>VCF Automation</td>
+                <td>Optional but common cloud-service layer</td>
+                <td>Optional, but more tightly aligned to services model</td>
+                <td>DNS/IP requirements depend on whether it is deployed day one or later</td>
+              </tr>
+              <tr>
+                <td>Base SDDC</td>
+                <td>Hosts, vCenter, NSX, SDDC Manager/fleet management</td>
+                <td>Same base pattern</td>
+                <td>The core does not go away; the service layer expands</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h2>The decision tree</h2>
+          <p>
+            This is how I would build the worksheet before starting a deployment.
+          </p>
+
+          <pre><code>Start with the management domain
+  Add ESXi management IPs and DNS
+  Add VCF Installer IP/FQDN
+  Add management vCenter IP/FQDN
+  Add SDDC Manager / fleet management endpoint
+  Add NSX Manager node IPs and VIP/FQDN
+
+Then ask:
+  HA for this service?
+    Add node IPs/FQDNs and VIP/FQDN
+
+  NSX Edge required?
+    Add Edge management IPs/FQDNs
+    Add Edge TEP pool
+    Add Edge uplink IPs
+
+  VCF Operations required?
+    Add VCFO endpoint, node IPs, collector IPs as needed
+
+  VCF Automation required?
+    Add VCFA endpoint and node/service IPs as needed
+
+  Logs required?
+    Add log endpoint and node IPs as needed
+
+  VCF 9.1 services required?
+    Add license service endpoint
+    Add depot/fleet depot service endpoint
+    Add management service endpoint(s)
+
+  VKS/Supervisor required?
+    Add supervisor control plane IPs
+    Add Kubernetes API endpoint/FQDN
+    Add ingress and egress pools
+    Add wildcard/application DNS as needed
+
+  Workload domain required?
+    Repeat host, vCenter, NSX, Edge, and Kubernetes decisions</code></pre>
+
+          <h2>The worksheet columns I would use</h2>
+          <p>
+            The final output should not just be a list of names. It should be a
+            table that an engineer can hand to DNS, network, security, and the
+            deployment team.
+          </p>
+
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Column</th>
+                <th>Why it matters</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Component</td>
+                <td>vCenter, NSX Manager, VCFO, VCFA, Edge node, supervisor, and so on</td>
+              </tr>
+              <tr>
+                <td>Version scope</td>
+                <td>VCF 9.0, VCF 9.1, or both</td>
+              </tr>
+              <tr>
+                <td>Required when</td>
+                <td>Always, HA only, Edge only, Kubernetes only, optional service, workload domain</td>
+              </tr>
+              <tr>
+                <td>FQDN</td>
+                <td>The name used in deployment, certificates, operations, and runbooks</td>
+              </tr>
+              <tr>
+                <td>IP address</td>
+                <td>The actual reserved address</td>
+              </tr>
+              <tr>
+                <td>Forward DNS</td>
+                <td>FQDN resolves to the planned IP</td>
+              </tr>
+              <tr>
+                <td>Reverse DNS</td>
+                <td>IP resolves back to the expected FQDN</td>
+              </tr>
+              <tr>
+                <td>Network / VLAN / segment</td>
+                <td>Management, vMotion, vSAN, TEP, Edge uplink, ingress, or service network</td>
+              </tr>
+              <tr>
+                <td>Certificate name</td>
+                <td>Confirms the DNS name matches the endpoint users and services will hit</td>
+              </tr>
+              <tr>
+                <td>Timing</td>
+                <td>Needed before bring-up, before service deployment, or later during expansion</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h2>The lesson</h2>
+          <p>
+            VCF 9.0 and 9.1 are close enough that it is tempting to reuse the
+            same IP spreadsheet. That is mostly fine for the base SDDC layer, but
+            it is not enough for the full platform.
+          </p>
+          <p>
+            The 9.1 planning shift is that more of the platform shows up as
+            services: licensing, depot, management services, activation, and
+            fleet-level operations. Those services need the same boring but
+            critical planning as every other infrastructure endpoint: IPs,
+            FQDNs, forward DNS, reverse DNS, certificates, and clear ownership.
+          </p>
+
+          <h2>References</h2>
+          <ul>
+            <li>
+              <a href="https://blogs.vmware.com/cloud-foundation/2025/06/17/modern-infrastructure-operations-vcf-9-0/">Operations in VMware Cloud Foundation 9.0</a>
+            </li>
+            <li>
+              <a href="https://blogs.vmware.com/cloud-foundation/2026/05/05/scale-simplify-and-secure-your-private-cloud-operations-with-vcf-9-1/">Scale, Simplify, and Secure Your Private Cloud Operations with VCF 9.1</a>
+            </li>
+            <li>
+              <a href="https://blogs.vmware.com/cloud-foundation/2026/05/18/vcf-9-1-licensing-programmatic-centralized-and-built-to-scale/">VCF 9.1 Licensing: Programmatic, Centralized, and Built to Scale</a>
+            </li>
+            <li>
+              <a href="https://www.vmware.com/docs/vmware-cloud-foundation-9-1-general-faqs">VMware Cloud Foundation 9.1 FAQ</a>
+            </li>
+          </ul>
+        </article>
+      </main>
+
+      <footer class="site-footer">
+        <span>© 2026 Brandon Quantz</span>
+        <span>theinfrastructureshift.com</span>
+      </footer>
+    </div>
+  </body>
+</html>
