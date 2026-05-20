@@ -50,9 +50,9 @@
         <article class="article">
           <h2>FQDNs and IP addresses</h2>
           <p>
-            This is the view I should have started with. Before getting into
-            the design logic, the useful planning question is simple: for each
-            component, how many FQDNs and IP addresses does the worksheet expect?
+            Before getting into the design logic, the useful planning question
+            is simple: for each component, how many FQDNs and IP addresses does
+            the worksheet expect?
           </p>
 
           <table class="compare-table component-matrix">
@@ -148,13 +148,13 @@
             </div>
           </figure>
 
-          <h2>The planning mistake</h2>
+          <h2>The planning trap</h2>
           <p>
-            The wrong question is, "How many IPs does VCF need?" That sounds
-            simple, but it breaks down almost immediately. A small management
-            domain without Edges, Automation, Logs, or Kubernetes is a very
-            different planning exercise from a full VCF fleet with HA services,
-            workload domains, NSX Edge clusters, and VKS.
+            "How many IPs does VCF need?" sounds simple, but it breaks down
+            almost immediately. A small management domain without Edges,
+            Automation, Logs, or Kubernetes is a very different planning
+            exercise from a full VCF fleet with HA services, workload domains,
+            NSX Edge clusters, and VKS.
           </p>
           <p>
             The better question is:
@@ -172,10 +172,9 @@
 
           <h2>DNS rules before the tables</h2>
           <p>
-            The workbook gives a cleaner rule than my first version of this
-            post did: create <strong>PTR and A records for all FQDNs</strong>
-            listed in the Management Domain Creation, Workload Domain Creation,
-            and Cluster Creation sections.
+            The workbook gives a clear DNS rule: create <strong>PTR and A
+            records for all FQDNs</strong> listed in the Management Domain
+            Creation, Workload Domain Creation, and Cluster Creation sections.
           </p>
           <p>
             That is the rule I would use for the worksheet. If the workbook asks
