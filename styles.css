@@ -571,6 +571,29 @@ p {
   color: var(--text);
 }
 
+.component-matrix td:first-child {
+  color: var(--text);
+  font-weight: 650;
+  width: 18%;
+}
+
+.component-matrix td:last-child {
+  color: var(--text);
+  font-family:
+    "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  width: 90px;
+}
+
+.table-note {
+  color: var(--muted);
+  display: inline-block;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin-top: 0.2rem;
+}
+
 @media (max-width: 820px) {
   .nav {
     align-items: flex-start;

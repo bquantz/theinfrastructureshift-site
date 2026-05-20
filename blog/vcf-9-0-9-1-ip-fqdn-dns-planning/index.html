@@ -48,37 +48,76 @@
         </header>
 
         <article class="article">
-          <h2>The short version</h2>
+          <h2>FQDNs and IP addresses</h2>
           <p>
-            VCF IP planning is easiest to understand as layers. Start with the
-            base SDDC components, add the VCF 9.1 management-services layer,
-            then add optional cloud services and repeat the pattern for workload
-            domains.
+            This is the view I should have started with. Before getting into
+            the design logic, the useful planning question is simple: for each
+            component, how many FQDNs and IP addresses does the worksheet expect?
           </p>
 
-          <table class="compare-table">
+          <table class="compare-table component-matrix">
             <thead>
               <tr>
-                <th>Rule</th>
-                <th>Practical answer</th>
+                <th>Component</th>
+                <th>FQDNs &amp; IPs</th>
+                <th>IP scheme</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td>DNS</td>
-                <td>If the workbook lists an FQDN, create both an A record and a PTR record.</td>
+                <td>vCenter</td>
+                <td><strong>1 FQDN</strong><br /><span class="table-note">Create A and PTR records for the vCenter FQDN.</span></td>
+                <td>IPv4</td>
               </tr>
               <tr>
-                <td>Ranges</td>
-                <td>IP ranges and pools are reserved capacity, not DNS objects by themselves.</td>
+                <td>Cloud Proxy</td>
+                <td><strong>1 FQDN</strong><br /><span class="table-note">Used when VCF Operations collectors/cloud proxy components are deployed.</span></td>
+                <td>IPv4</td>
               </tr>
               <tr>
-                <td>VCF Management Services</td>
-                <td>Plan five named endpoints plus a Management Services IP range: 12 minimum, 30 recommended.</td>
+                <td>NSX Manager</td>
+                <td><strong>4 FQDNs</strong><br /><span class="table-note">1 FQDN for the NSX Manager cluster VIP and 3 FQDNs for NSX Manager appliances in HA mode.</span></td>
+                <td>IPv4</td>
               </tr>
               <tr>
-                <td>Expansion</td>
-                <td>Every workload domain repeats host, vCenter, NSX, Edge, and Kubernetes choices.</td>
+                <td>SDDC Manager / VCF Installer</td>
+                <td><strong>1 FQDN</strong><br /><span class="table-note">The workbook notes this might not be required if the VCF Installer is deployed on a host used for the deployment. When listed, create A and PTR records.</span></td>
+                <td>IPv4</td>
+              </tr>
+              <tr>
+                <td>VCF Operations</td>
+                <td><strong>3 FQDNs</strong><br /><span class="table-note">1 primary node, 1 replica node, and 1 data node. The workbook also lists an optional load balancer FQDN for HA.</span></td>
+                <td>IPv4</td>
+              </tr>
+              <tr>
+                <td>VCF management services</td>
+                <td><strong>4 FQDNs and an IP range</strong><br /><span class="table-note">1 Fleet components FQDN, 1 Instance components FQDN, 1 VCF services runtime FQDN, and 1 Identity Broker FQDN. Reserve a VCF Management Services IP range: 12 IPs minimum, 30 recommended for growth and auto-scaling.</span></td>
+                <td>IPv4</td>
+              </tr>
+              <tr>
+                <td>License Server</td>
+                <td><strong>1 FQDN</strong><br /><span class="table-note">Listed separately in the VCF management-services section of the 9.1 workbook. Create A and PTR records for the License Server FQDN.</span></td>
+                <td>IPv4</td>
+              </tr>
+              <tr>
+                <td>VCF Automation</td>
+                <td><strong>2 FQDNs and an IP range</strong><br /><span class="table-note">1 VCF Automation FQDN and 1 VCF services runtime FQDN. The workbook also calls for a VCF Automation IP range: 4 active node addresses plus 1 rolling-upgrade address.</span></td>
+                <td>IPv4</td>
+              </tr>
+              <tr>
+                <td>vSAN</td>
+                <td><strong>IP range, minimum 4 IP addresses</strong><br /><span class="table-note">Based on the minimum number of hosts. Plan additional IPs as hosts are added. No per-address DNS unless an FQDN is listed elsewhere.</span></td>
+                <td>IPv4</td>
+              </tr>
+              <tr>
+                <td>vMotion</td>
+                <td><strong>IP range, minimum 4 IP addresses</strong><br /><span class="table-note">Based on the minimum number of hosts. Plan additional IPs as hosts are added. No per-address DNS unless an FQDN is listed elsewhere.</span></td>
+                <td>IPv4</td>
+              </tr>
+              <tr>
+                <td>ESXi hosts</td>
+                <td><strong>1 FQDN per host</strong><br /><span class="table-note">Each host management FQDN needs A and PTR records. The workbook includes rows for up to 16 hosts in the management-domain section.</span></td>
+                <td>IPv4</td>
               </tr>
             </tbody>
           </table>
@@ -130,31 +169,6 @@
             way. It has named endpoints that need DNS, and it also has address
             ranges that are consumed by the services runtime.
           </p>
-
-          <figure class="diagnostic-diagram" aria-labelledby="vcf-planning-formula-title">
-            <figcaption id="vcf-planning-formula-title">VCF IP planning formula</figcaption>
-            <div class="diagram-flow" aria-hidden="true">
-              <span>Base management domain</span>
-              <span class="diagram-arrow">+</span>
-              <span>Optional services</span>
-              <span class="diagram-arrow">+</span>
-              <span>Workload domain repeats</span>
-            </div>
-            <dl class="diagram-states">
-              <div>
-                <dt>Baseline</dt>
-                <dd>Hosts, installer, vCenter, SDDC Manager/fleet management, NSX management</dd>
-              </div>
-              <div>
-                <dt>Conditional</dt>
-                <dd>VCF Operations, Automation, Logs, Edges, VKS, license/depot services</dd>
-              </div>
-              <div>
-                <dt>Repeating</dt>
-                <dd>Every workload domain adds its own host, vCenter, NSX, Edge, and Kubernetes choices</dd>
-              </div>
-            </dl>
-          </figure>
 
           <h2>DNS rules before the tables</h2>
           <p>
@@ -396,8 +410,8 @@
               </tr>
               <tr>
                 <td>VCF 9.1 named Management Services endpoints</td>
-                <td><code>5</code>: Fleet components, Instance component, Identity Broker, VCF services runtime, and VCF License Server</td>
-                <td><code>5</code> FQDN/IP endpoints</td>
+                <td><code>4</code>: Fleet components, Instance component, Identity Broker, and VCF services runtime</td>
+                <td><code>4</code> FQDN/IP endpoints</td>
                 <td>A and PTR records for the named service endpoints</td>
               </tr>
               <tr>
@@ -531,7 +545,7 @@
                 <td>Named VCF Management Services endpoints</td>
                 <td><code>5</code></td>
                 <td><code>5</code></td>
-                <td>Fleet components, Instance component, Identity Broker, VCF services runtime, and VCF License Server</td>
+                <td>Four management-services endpoints plus the separate VCF License Server endpoint</td>
               </tr>
               <tr>
                 <td>VCF Management Services IP Range</td>
@@ -740,8 +754,8 @@
               <tr>
                 <td>Management services</td>
                 <td>VCF management services / services runtime</td>
-                <td><code>5</code> named endpoints plus a Management Services IP range of minimum <code>12</code> IPs, or <code>30</code> for growth and auto-scaling</td>
-                <td>A and PTR records for the five named endpoints: Fleet components, Instance component, Identity Broker, VCF services runtime, and VCF License Server. The range itself is not a list of per-address DNS records.</td>
+                <td><code>4</code> named endpoints plus a Management Services IP range of minimum <code>12</code> IPs, or <code>30</code> for growth and auto-scaling</td>
+                <td>A and PTR records for the four named endpoints: Fleet components, Instance component, Identity Broker, and VCF services runtime. The range itself is not a list of per-address DNS records.</td>
                 <td>When using the 9.1 management services model</td>
               </tr>
               <tr>
