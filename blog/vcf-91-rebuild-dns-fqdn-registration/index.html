@@ -53,6 +53,15 @@
           <p>The failing path was registration and federation around the operations components. The spec referenced service names that either did not exist in forward DNS, differed from the shortened names actually deployed, or had reverse records that did not round-trip cleanly.</p>
           <p>That created a split-brain feeling: appliances were present, some endpoints were reachable, and yet the higher-level integration never completed.</p>
           <p>This is exactly the kind of failure that wastes time because it looks like an application problem after deployment. It was really a pre-deployment naming problem.</p>
+          <pre><code># Sanitized shape of the failure
+$ dig +short operations-lb.example.internal
+
+$ dig +short -x 192.0.2.45
+old-platform-name.example.internal.
+
+$ installer precheck
+ERROR: operations load balancer FQDN does not resolve
+ERROR: reverse DNS does not match requested endpoint identity</code></pre>
 
           <h2>VCF names are not labels</h2>
           <p>The important mental shift is that names in the bring-up spec are not friendly labels. They are integration contracts.</p>
@@ -63,6 +72,37 @@
           <p>Every FQDN in the spec should have a forward A record before bring-up. Every address should have a reverse PTR. Forward and reverse lookup should round-trip to the same expected name.</p>
           <p>That includes management appliances, load balancer VIPs, NSX managers, operations nodes, fleet services, identity services, collectors, automation components, log components, and ESXi hosts.</p>
           <p>The point is not only that DNS exists. The point is that the exact spelling in the spec, the deployed hostname, the forward record, and the reverse record all agree.</p>
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Check</th>
+                <th>Pass condition</th>
+                <th>Why it matters</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Forward lookup</td>
+                <td>Every spec FQDN returns the expected management IP or VIP</td>
+                <td>The installer and registration paths use the names you gave them.</td>
+              </tr>
+              <tr>
+                <td>Reverse lookup</td>
+                <td>Every IP returns the same FQDN used in the spec</td>
+                <td>Identity, federation, and monitoring adapters hate drift.</td>
+              </tr>
+              <tr>
+                <td>Length/normalization</td>
+                <td>Deployed hostnames match the names in the spec</td>
+                <td>Shortened appliance names can leave the spec pointing at ghosts.</td>
+              </tr>
+              <tr>
+                <td>Precheck</td>
+                <td>No DNS warnings are waived</td>
+                <td>The cheapest repair window is before bring-up starts.</td>
+              </tr>
+            </tbody>
+          </table>
 
           <h2>Do not bypass prechecks</h2>
           <p>The process change is more important than the individual typo.</p>

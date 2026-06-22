@@ -53,6 +53,26 @@
           <p>TLS is not authorization.</p>
           <p>That sounds obvious, but it is an easy mistake to make in operational systems. Once an endpoint is encrypted, it feels secure. But encryption only protects the connection. It does not decide whether the caller should be allowed to use the tool surface.</p>
           <p>If an endpoint accepts unauthenticated or weakly authenticated requests from anyone who can reach the network, the endpoint is still open. It is just open over HTTPS.</p>
+          <figure class="diagnostic-diagram">
+            <figcaption>Two different controls</figcaption>
+            <div class="diagram-flow">
+              <span>caller</span>
+              <span class="diagram-arrow">→</span>
+              <span>TLS channel</span>
+              <span class="diagram-arrow">→</span>
+              <span>tool endpoint</span>
+            </div>
+            <dl class="diagram-states">
+              <div>
+                <dt>TLS answers</dt>
+                <dd>Is this connection private, and am I talking to the expected server?</dd>
+              </div>
+              <div>
+                <dt>Auth answers</dt>
+                <dd>Who is calling, what tool can they invoke, and against which target?</dd>
+              </div>
+            </dl>
+          </figure>
 
           <h2>Credential passthrough is not access control</h2>
           <p>One subtle version of this problem appears when middleware forwards credentials downstream but does not reject callers at the edge.</p>
@@ -68,6 +88,37 @@
           <p>The durable design needs caller authentication at the tool endpoint, not only at downstream systems. It needs authorization by tool, action, and target. It needs audit records for every call. It needs separate handling for read-only tools, low-risk mutating tools, and high-risk or irreversible tools.</p>
           <p>For some environments that may mean bearer tokens. For others, mutual TLS, workload identity, signed service tokens, or an identity-aware proxy. The mechanism matters less than the boundary: no request enters the operational tool surface without a known caller and an allowed purpose.</p>
           <p>Once AI agents can call tools, this boundary becomes one of the most important security controls in the platform.</p>
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Layer</th>
+                <th>Question</th>
+                <th>Failure if missing</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Transport</td>
+                <td>Is the channel encrypted?</td>
+                <td>Credentials and context can leak in transit.</td>
+              </tr>
+              <tr>
+                <td>Caller identity</td>
+                <td>Who is invoking the tool surface?</td>
+                <td>Anyone with network reachability can try operational calls.</td>
+              </tr>
+              <tr>
+                <td>Tool authorization</td>
+                <td>Which tools and targets are allowed?</td>
+                <td>A read-only caller can drift into mutation paths.</td>
+              </tr>
+              <tr>
+                <td>Audit</td>
+                <td>What happened, and under whose authority?</td>
+                <td>The platform cannot explain or learn from actions.</td>
+              </tr>
+            </tbody>
+          </table>
 
           <h2>The lesson</h2>
           <p>Security work often lands in layers. First make the channel private. Then make the caller known. Then make the action authorized. Then make the result auditable.</p>

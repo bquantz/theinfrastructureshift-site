@@ -58,11 +58,80 @@
           <p>The core control is simple: model output never executes directly.</p>
           <p>The model returns a structured proposal: action, target, parameters, reason, and expected effect. That proposal is data. It is parsed, checked against a schema, checked against policy, assigned a risk tier, and only then routed to an existing executor.</p>
           <p>This matters because prompt injection is not theoretical in operations. Device output, logs, tickets, old configuration comments, and user text can all carry hostile or misleading instructions. If the model can choose its own authority, the system is already lost. If the model can only emit a proposal that policy must accept, the blast radius is controlled.</p>
+          <figure class="diagnostic-diagram">
+            <figcaption>Control path</figcaption>
+            <div class="diagram-flow">
+              <span>context</span>
+              <span class="diagram-arrow">→</span>
+              <span>model proposal</span>
+              <span class="diagram-arrow">→</span>
+              <span>schema</span>
+            </div>
+            <div class="diagram-flow diagram-flow-secondary">
+              <span>policy</span>
+              <span class="diagram-arrow">→</span>
+              <span>risk tier</span>
+              <span class="diagram-arrow">→</span>
+              <span>guardrailed executor</span>
+            </div>
+          </figure>
+          <p>
+            The handoff should look boring on purpose. The model does not emit a
+            shell command. It emits a narrow object the platform can inspect.
+          </p>
+          <pre><code>{
+  "proposal_id": "prop_1047",
+  "action": "create_segment",
+  "target": "workload-network",
+  "parameters": {
+    "name": "customer-lab-web",
+    "cidr": "example-private-cidr",
+    "gateway": "example-private-gateway"
+  },
+  "reason": "new lab request needs isolated web tier",
+  "expected_effect": "segment exists, no firewall rule changed"
+}</code></pre>
 
           <h2>Risk comes from the action, not from the model</h2>
           <p>A common mistake is to treat every AI-driven action as equally risky because a model was involved. That is too blunt to operate.</p>
           <p>The better rule is that the risk tier comes from what the action touches. A read-only explanation of a failed deployment is not the same class of event as rotating a credential, changing a firewall policy, powering off a host, or merging to a production branch.</p>
           <p>Low-risk proposals can be allowed to proceed automatically after validation. Higher-risk proposals require an independent security review or explicit human approval. Irreversible or production-mutating actions stop for a human. The model does not get to downgrade that tier because it sounds confident.</p>
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Proposal</th>
+                <th>Risk source</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Summarize failed deployment logs</td>
+                <td>Read-only diagnostic context</td>
+                <td>Auto-allow, audit only</td>
+              </tr>
+              <tr>
+                <td>Create a disposable lab segment</td>
+                <td>Network mutation, reversible</td>
+                <td>Policy allow + normal change record</td>
+              </tr>
+              <tr>
+                <td>Rotate a service credential</td>
+                <td>Identity and secret material</td>
+                <td>Human approval required</td>
+              </tr>
+              <tr>
+                <td>Delete production state</td>
+                <td>Irreversible operational impact</td>
+                <td>Denied unless separately authorized</td>
+              </tr>
+            </tbody>
+          </table>
+          <pre><code>policy_result:
+  decision: deny
+  reason: "model proposed credential rotation"
+  required_gate: "human"
+  executor_called: false</code></pre>
 
           <h2>The reusable pattern</h2>
           <p>The useful shape is model-agnostic. The application should not care whether the backend is a CPU pilot model, a GPU-hosted open model, or a different internal endpoint later.</p>

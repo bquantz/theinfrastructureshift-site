@@ -69,6 +69,31 @@
             So we stopped treating this as a better-assistant problem and started
             treating it as an org-design problem.
           </p>
+          <figure class="diagnostic-diagram">
+            <figcaption>The shape of the org</figcaption>
+            <div class="diagram-ladder">
+              <div>
+                <span>lane 1</span>
+                <strong>Builder</strong>
+                <p>Owns implementation inside a bounded repo or task lane.</p>
+              </div>
+              <div>
+                <span>lane 2</span>
+                <strong>Reviewer</strong>
+                <p>Checks correctness without rewriting the work under review.</p>
+              </div>
+              <div>
+                <span>lane 3</span>
+                <strong>Security</strong>
+                <p>Owns policy, vetoes unsafe paths, and is also gated.</p>
+              </div>
+              <div>
+                <span>gate</span>
+                <strong>Human</strong>
+                <p>Approves irreversible, credential-bearing, or production work.</p>
+              </div>
+            </div>
+          </figure>
 
           <h2>The problem with a single agent</h2>
           <p>
@@ -177,6 +202,13 @@
             Separation of duties only works when no one, including the auditor,
             is above the gate.
           </p>
+          <pre><code>gate_event:
+  actor: security-agent
+  attempted:
+    - reuse service credential across systems
+    - push host config outside pipeline
+  result: blocked
+  reason: "same RED rules apply to the reviewer"</code></pre>
 
           <h2>The constraint no one designs for: throughput</h2>
           <p>
@@ -227,6 +259,30 @@
             different fixes. Before you redesign the org chart, check whether
             your agents are simply starving each other.
           </p>
+          <figure class="diagnostic-diagram">
+            <figcaption>Failure mode</figcaption>
+            <div class="diagram-flow">
+              <span>agent A</span>
+              <span class="diagram-arrow">→</span>
+              <span>shared API pipe</span>
+              <span class="diagram-arrow">←</span>
+              <span>agent B</span>
+            </div>
+            <dl class="diagram-states">
+              <div>
+                <dt>Symptom</dt>
+                <dd>stalled work, retry storms, "temporarily limiting requests"</dd>
+              </div>
+              <div>
+                <dt>Wrong fix</dt>
+                <dd>redesigning the org chart or adding more agents</dd>
+              </div>
+              <div>
+                <dt>Right fix</dt>
+                <dd>pace dispatch, cache aggressively, route cheap work cheaply</dd>
+              </div>
+            </dl>
+          </figure>
 
           <h2>The model's failure modes</h2>
           <p>

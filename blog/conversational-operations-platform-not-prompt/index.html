@@ -53,6 +53,31 @@
           <p>The pattern I keep coming back to is a disaggregated platform. Each service owns one bounded domain and exposes that domain through clean interfaces.</p>
           <p>Inventory belongs in the source of truth. IP addresses and DNS belong in IPAM. Bare-metal installation belongs in the provisioning engine. Network discovery belongs in topology tooling. Workload deployment belongs in the lab builder. AI access belongs behind a tool surface, not scattered through one-off scripts.</p>
           <p>That separation matters because no single service has to understand the whole world. It only has to keep its contract.</p>
+          <figure class="diagnostic-diagram">
+            <figcaption>Platform underneath the conversation</figcaption>
+            <div class="diagram-grid">
+              <div class="diagram-card">
+                <span>source of truth</span>
+                <strong>Inventory and IP state</strong>
+                <p>Devices, racks, interfaces, addresses, custom operational state.</p>
+              </div>
+              <div class="diagram-card">
+                <span>provisioning</span>
+                <strong>Bare metal to platform</strong>
+                <p>Host selection, OS install, bring-up workflow, status writeback.</p>
+              </div>
+              <div class="diagram-card">
+                <span>operations</span>
+                <strong>Topology and telemetry</strong>
+                <p>Observed state, drift, alarms, utilization, fabric health.</p>
+              </div>
+              <div class="diagram-card">
+                <span>agent surface</span>
+                <strong>Tools and policy</strong>
+                <p>Read broadly, mutate narrowly, audit every meaningful action.</p>
+              </div>
+            </div>
+          </figure>
 
           <h2>NetBox as the common language</h2>
           <p>The platform needs a shared language for physical reality. Devices, racks, roles, interfaces, addresses, cables, out-of-band endpoints, and custom operational state have to be somewhere all the other systems can read.</p>
@@ -68,6 +93,32 @@
           <p>A useful way to test the platform is to ask four representative questions.</p>
           <p>What is wrong with the network requires topology, drift detection, fabric health, firewall state, NSX alarms, recent changes, and eventually live link utilization. Provision a new VCF instance requires host selection, IP allocation, hypervisor install, installer deployment, bring-up, and verification. Deploy a workload VM set requires a target platform, templates, directory integration, Terraform, Ansible, and post-deploy checks. What is going end of life requires complete inventory, hardware detail, lifecycle data, vendor EOL feeds, and impact ranking.</p>
           <p>Those questions are not just demos. They are architecture tests. Every missing answer points at a missing integration.</p>
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Question</th>
+                <th>Minimum evidence path</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>What's wrong with the network?</td>
+                <td>topology drift + fabric health + alarms + recent change context</td>
+              </tr>
+              <tr>
+                <td>Provision four hosts</td>
+                <td>candidate selection + IP/DNS allocation + install workflow + validation</td>
+              </tr>
+              <tr>
+                <td>Deploy a workload set</td>
+                <td>template + target cluster + identity + Terraform/Ansible result</td>
+              </tr>
+              <tr>
+                <td>What is going end of life?</td>
+                <td>inventory + component detail + lifecycle source + impact ranking</td>
+              </tr>
+            </tbody>
+          </table>
 
           <h2>Honesty is part of the design</h2>
           <p>The platform does not need to pretend everything is done. A good agentic operations layer should say which parts are live, which are partial, and which are blocked by missing data or missing tools.</p>
