@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VCF 9.1 Rebuild: DNS and FQDNs Were the Real Dependency | Brandon Quantz</title>
+    <meta
+      name="description"
+      content="A VCF 9.1 rebuild lesson on why exact FQDN planning, forward DNS, reverse DNS, and installer prechecks matter more than almost any late-stage workaround."
+    />
+    <link
+      rel="canonical"
+      href="https://theinfrastructureshift.com/blog/vcf-91-rebuild-dns-fqdn-registration/"
+    />
+    <link rel="stylesheet" href="../../styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <nav class="nav" aria-label="Main navigation">
+          <a class="brand" href="../../">
+            <strong>Brandon Quantz</strong>
+            <span>Product architecture notes</span>
+          </a>
+          <div class="nav-links">
+            <a href="../../">Home</a>
+            <a href="mailto:bquantz@gmail.com">Contact</a>
+          </div>
+        </nav>
+      </header>
+
+      <main>
+        <header class="article-header">
+          <p class="eyebrow"><a href="../../topics/private-ai-foundation/">Private AI Foundation</a></p>
+          <h1>VCF 9.1 Rebuild: DNS and FQDNs Were the Real Dependency</h1>
+          <p class="article-summary">
+            A failed VCF 9.1 registration path came down to a basic dependency: the names in the bring-up spec did not resolve exactly as the platform expected.
+          </p>
+          <div class="hero-meta">
+            <span>By Brandon Quantz</span>
+            <span>June 2026</span>
+            <span>8 min read</span>
+          </div>
+        </header>
+
+        <article class="article">
+          <h2>The boring dependency broke the advanced platform</h2>
+          <p>VCF 9.1 brings enough moving parts that it is tempting to look for a complicated failure when registration or operations integration breaks.</p>
+          <p>In this rebuild, the root cause was simpler and more painful: the FQDNs in the bring-up specification did not match what DNS could resolve.</p>
+          <p>The platform components deployed. Some services appeared healthy. Credentials, licensing, and connectivity were not the issue. But the management plane was still built on names, and the names were wrong.</p>
+
+          <h2>What failed</h2>
+          <p>The failing path was registration and federation around the operations components. The spec referenced service names that either did not exist in forward DNS, differed from the shortened names actually deployed, or had reverse records that did not round-trip cleanly.</p>
+          <p>That created a split-brain feeling: appliances were present, some endpoints were reachable, and yet the higher-level integration never completed.</p>
+          <p>This is exactly the kind of failure that wastes time because it looks like an application problem after deployment. It was really a pre-deployment naming problem.</p>
+
+          <h2>VCF names are not labels</h2>
+          <p>The important mental shift is that names in the bring-up spec are not friendly labels. They are integration contracts.</p>
+          <p>Operations registration, SSO federation, monitoring adapter activation, load balancer endpoints, collectors, managers, and service discovery all rely on exact names resolving correctly.</p>
+          <p>If a component is deployed under a normalized or shortened hostname but the spec still points at the longer original name, the platform does not infer intent. It tries the name it was given.</p>
+
+          <h2>The checklist that should happen before bring-up</h2>
+          <p>Every FQDN in the spec should have a forward A record before bring-up. Every address should have a reverse PTR. Forward and reverse lookup should round-trip to the same expected name.</p>
+          <p>That includes management appliances, load balancer VIPs, NSX managers, operations nodes, fleet services, identity services, collectors, automation components, log components, and ESXi hosts.</p>
+          <p>The point is not only that DNS exists. The point is that the exact spelling in the spec, the deployed hostname, the forward record, and the reverse record all agree.</p>
+
+          <h2>Do not bypass prechecks</h2>
+          <p>The process change is more important than the individual typo.</p>
+          <p>VCF installer validation exists to catch this class of failure while the environment is still cheap to fix. If the precheck says a name does not resolve, that is not a warning to mentally file away. It is the platform telling you the bring-up contract is invalid.</p>
+          <p>A later workaround can sometimes repair a record, but it cannot always repair every registration and federation attempt that already failed against the wrong identity.</p>
+
+          <h2>The reusable lesson</h2>
+          <p>This was a VCF 9.1 rebuild, but the lesson applies to every private AI or cloud foundation build.</p>
+          <p>Advanced platforms fail on basic substrate. DNS, time, certificates, identity, IP plans, and reverse lookup are not prerequisites you finish once and stop thinking about. They are active dependencies of the control plane.</p>
+          <p>Before blaming the new thing, prove the boring things. The boring things usually still own the outage.</p>
+        </article>
+      </main>
+
+      <footer class="site-footer">
+        <span>© 2026 Brandon Quantz</span>
+      </footer>
+    </div>
+  </body>
+</html>

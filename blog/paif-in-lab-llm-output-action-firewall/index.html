@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PAIF Part 3: In-Lab LLMs and the Output-to-Action Firewall | Brandon Quantz</title>
+    <meta
+      name="description"
+      content="Private AI becomes operational when model output is treated as a proposal, validated by policy, routed through a risk gate, and executed only through guardrailed systems."
+    />
+    <link
+      rel="canonical"
+      href="https://theinfrastructureshift.com/blog/paif-in-lab-llm-output-action-firewall/"
+    />
+    <link rel="stylesheet" href="../../styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <nav class="nav" aria-label="Main navigation">
+          <a class="brand" href="../../">
+            <strong>Brandon Quantz</strong>
+            <span>Product architecture notes</span>
+          </a>
+          <div class="nav-links">
+            <a href="../../">Home</a>
+            <a href="mailto:bquantz@gmail.com">Contact</a>
+          </div>
+        </nav>
+      </header>
+
+      <main>
+        <header class="article-header">
+          <p class="eyebrow"><a href="../../topics/private-ai-foundation/">Private AI Foundation</a></p>
+          <h1>PAIF Part 3: In-Lab LLMs and the Output-to-Action Firewall</h1>
+          <p class="article-summary">
+            Private AI becomes operational when the model is not trusted to act directly. The useful pattern is an in-lab model, a structured proposal, a policy gate, and an execution path that already has controls.
+          </p>
+          <div class="hero-meta">
+            <span>By Brandon Quantz</span>
+            <span>June 2026</span>
+            <span>9 min read</span>
+          </div>
+        </header>
+
+        <article class="article">
+          <h2>The private AI question moves from model to boundary</h2>
+          <p>The first two PAIF posts were about why private AI exists and how a Tier 3 private AI reference architecture can be designed. This third part is about the point where the architecture starts to act.</p>
+          <p>A private model that only answers questions is useful. A private model that proposes operational changes is much more useful. It is also much more dangerous if the output is treated as authority.</p>
+          <p>That distinction is the design center. In the PAIF pattern I am building toward, the model is not a privileged operator. It is an untrusted suggestion engine running inside the environment. The platform around it decides what the suggestion is allowed to become.</p>
+
+          <h2>Why self-host the model at all</h2>
+          <p>The reason to run the model in-lab is not that every local model is better than every hosted model. It usually is not. The reason is that infrastructure context is sensitive by default.</p>
+          <p>Inventory, device configuration, customer lab data, topology, alarms, service accounts, and operational history are not generic prompt material. If an application needs that context to be useful, the data boundary becomes a first-class architecture decision.</p>
+          <p>For PAIF, the model endpoint should sit inside the same trust envelope as the platform. Applications call an internal, authenticated inference endpoint. Data stays in the lab. The model can be smaller and slower if the use case is bounded enough. The architecture is the point, not a leaderboard score.</p>
+
+          <h2>The output-to-action firewall</h2>
+          <p>The core control is simple: model output never executes directly.</p>
+          <p>The model returns a structured proposal: action, target, parameters, reason, and expected effect. That proposal is data. It is parsed, checked against a schema, checked against policy, assigned a risk tier, and only then routed to an existing executor.</p>
+          <p>This matters because prompt injection is not theoretical in operations. Device output, logs, tickets, old configuration comments, and user text can all carry hostile or misleading instructions. If the model can choose its own authority, the system is already lost. If the model can only emit a proposal that policy must accept, the blast radius is controlled.</p>
+
+          <h2>Risk comes from the action, not from the model</h2>
+          <p>A common mistake is to treat every AI-driven action as equally risky because a model was involved. That is too blunt to operate.</p>
+          <p>The better rule is that the risk tier comes from what the action touches. A read-only explanation of a failed deployment is not the same class of event as rotating a credential, changing a firewall policy, powering off a host, or merging to a production branch.</p>
+          <p>Low-risk proposals can be allowed to proceed automatically after validation. Higher-risk proposals require an independent security review or explicit human approval. Irreversible or production-mutating actions stop for a human. The model does not get to downgrade that tier because it sounds confident.</p>
+
+          <h2>The reusable pattern</h2>
+          <p>The useful shape is model-agnostic. The application should not care whether the backend is a CPU pilot model, a GPU-hosted open model, or a different internal endpoint later.</p>
+          <p>The durable interface is an OpenAI-compatible internal endpoint plus a firewall component that every app uses before execution. That lets the platform test the action path before the final inference hardware is ready.</p>
+          <p>The first pilot does not need to prove model quality. It needs to prove the gate: no proposed action reaches execution without schema validation, policy validation, risk-tier assignment, audit logging, and the existing guardrailed executor.</p>
+
+          <h2>What this unlocks</h2>
+          <p>Once this boundary exists, the use cases get interesting. A provisioning system can draft a multi-host deployment plan. A lab builder can explain why a workload deployment failed. A network tool can propose the specific VLAN or segment changes needed for a new environment. A troubleshooting assistant can collect evidence and recommend the next bounded action.</p>
+          <p>The model supplies judgment and synthesis. The platform supplies identity, policy, state, approval, and execution.</p>
+          <p>That is the difference between putting a chatbot near infrastructure and building private AI into infrastructure operations.</p>
+        </article>
+      </main>
+
+      <footer class="site-footer">
+        <span>© 2026 Brandon Quantz</span>
+      </footer>
+    </div>
+  </body>
+</html>

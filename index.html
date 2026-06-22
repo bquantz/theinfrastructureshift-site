@@ -21,7 +21,7 @@
           </a>
           <div class="nav-links">
             <a href="#about">About</a>
-            <a href="blog/the-agent-i-already-had/">Latest</a>
+            <a href="blog/paif-in-lab-llm-output-action-firewall/">Latest</a>
             <a href="#focus">Focus</a>
             <a href="mailto:bquantz@gmail.com">Contact</a>
           </div>
@@ -162,137 +162,63 @@
             <div>
               <p class="eyebrow">Latest writing</p>
               <div class="post-list">
-                <a
-                  class="post-card"
-                  href="blog/the-agent-i-already-had/"
-                >
-                  <span class="post-meta">June 2026 · Agentic Operations · 8 min read</span>
-                  <h2 id="latest-posts">
-                    The Agent I Already Had
-                  </h2>
-                  <p>
-                    My inbox was a mess, my Outlook rules only worked halfway,
-                    and Copilot could advise but not act. The fix came from the
-                    agentic AI already running on my laptop.
-                  </p>
-                </a>
-                <a
-                  class="post-card"
-                  href="blog/vcf-9-0-9-1-ip-fqdn-dns-planning/"
-                >
-                  <span class="post-meta">May 2026 · VCF Operations · 10 min read</span>
-                  <h2>
-                    VCF 9.0 vs 9.1: IP and DNS Planning for Internal Components
-                  </h2>
-                  <p>
-                    A practical planning model for the internal components that
-                    need IP addresses, FQDNs, forward DNS, and reverse DNS
-                    across VCF 9.0 and VCF 9.1.
-                  </p>
-                </a>
-                <a
-                  class="post-card"
-                  href="blog/vcf-9-1-repository-setup-download-tokens-to-activation-codes/"
-                >
-                  <span class="post-meta">May 2026 · VCF Operations · 8 min read</span>
-                  <h2>
-                    VCF 9.1 Depot Setup: From Download Tokens to Activation Codes
-                  </h2>
-                  <p>
-                    VCF 9.1 changes the online depot flow from the familiar
-                    download-token model to Software Depot Registration,
-                    Download Service ID, and activation-code handling through
-                    the newer VCF portal.
-                  </p>
-                </a>
-                <a
-                  class="post-card"
-                  href="blog/designing-paif-reference-architecture-tier-3-private-ai/"
-                >
-                  <span class="post-meta">May 2026 · Private AI Foundation · Part 2 · 12 min read</span>
-                  <h2>
-                    Designing PAIF: A Reference Architecture for Tier 3 Private AI
-                  </h2>
-                  <p>
-                    A practical design for private knowledge, local processing,
-                    Tier 3 private question answering, Kubernetes-first AI
-                    services, and hybrid routing when policy allows.
-                  </p>
-                </a>
-                <a
-                  class="post-card"
-                  href="blog/forge-esxi-91-what-broke-and-why/"
-                >
-                  <span class="post-meta">May 2026 · Forge · Part 2 · 11 min read</span>
-                  <h2>
-                    Forge + ESXi 9.1: What Actually Broke and Why
-                  </h2>
-                  <p>
-                    Six failure modes from making ESXi 9.1 deploy reliably:
-                    misleading job status, ignored kickstart networking, Redfish
-                    boot quirks, bad test paths, fragile background jobs, and NTP
-                    persistence.
-                  </p>
-                </a>
-                <a
-                  class="post-card"
-                  href="blog/forge-from-powered-off-to-production-ready/"
-                >
-                  <span class="post-meta">May 2026 · Forge · Part 1 · 8 min read</span>
-                  <h2>
-                    Forge: From Powered-Off to Production-Ready
-                  </h2>
-                  <p>
-                    Introducing the bare-metal-to-platform automation system I am
-                    building for the gap before Terraform, Ansible, VCF bring-up,
-                    or Foundation can even start.
-                  </p>
-                </a>
-                <a
-                  class="post-card"
-                  href="blog/chasing-a-10-second-timeout-contour-mtu/"
-                >
-                  <span class="post-meta">May 2026 · Agentic Operations · 13 min read</span>
-                  <h2>
-                    Chasing a 10-Second Timeout: How an MTU Misconfiguration Broke Contour for Five Days
-                  </h2>
-                  <p>
-                    A joint troubleshooting loop with Claude Code chased a
-                    Contour CrashLoopBackOff across Kubernetes, NSX, packet
-                    captures, and finally a 1500-byte MTU boundary in the Geneve
-                    underlay.
-                  </p>
-                </a>
-                <a
-                  class="post-card"
-                  href="blog/ai-assisted-troubleshooting-evpn-bum-replication/"
-                >
-                  <span class="post-meta">May 2026 · Agentic Operations · 9 min read</span>
-                  <h2>
-                    AI-Assisted Troubleshooting in a Spine-Leaf Fabric: When the Agent Was Almost Right
-                  </h2>
-                  <p>
-                    A real lab troubleshooting story: an AI agent chased an EVPN
-                    BUM replication failure across a fabric, got the first answer
-                    wrong, and then found the root cause after one missing
-                    architectural clue.
-                  </p>
-                </a>
-                <a
-                  class="post-card"
-                  href="blog/building-a-private-ai-platform-in-vmware-cloud-foundation-part-1/"
-                >
-                  <span class="post-meta">May 2026 · Private AI Foundation · 7 min read</span>
-                  <h2>
-                    Building a Private AI Platform in VMware Cloud Foundation - Part 1
-                  </h2>
-                  <p>
-                    Why private AI infrastructure is not about replacing every public
-                    model, and why the real architecture discussion starts with
-                    control, data locality, GPUs, and operations.
-                  </p>
-                </a>
-              </div>
+              <a class="post-card" href="blog/paif-in-lab-llm-output-action-firewall/">
+                <span class="post-meta">June 2026 · Private AI Foundation · Part 3 · 9 min read</span>
+                <h2 id="latest-posts">PAIF Part 3: In-Lab LLMs and the Output-to-Action Firewall</h2>
+                <p>
+                  Private AI becomes operational when the model is not trusted to act directly. The useful pattern is an in-lab model, a structured proposal, a policy gate, and an execution path that already has controls.
+                </p>
+              </a>
+              <a class="post-card" href="blog/agent-org-separated-ai-roles/">
+                <span class="post-meta">June 2026 · Agentic Operations · 10 min read</span>
+                <h2>The Agent Org: Running Infrastructure Work Through Separated AI Roles</h2>
+                <p>
+                  The safest version of AI operations is not one all-powerful assistant. It is a small operating model: separated roles, independent review, written decisions, and a human gate for irreversible work.
+                </p>
+              </a>
+              <a class="post-card" href="blog/conversational-operations-platform-not-prompt/">
+                <span class="post-meta">June 2026 · Agentic Operations · 9 min read</span>
+                <h2>Conversational Operations Needs a Platform, Not a Prompt</h2>
+                <p>
+                  A useful AI operations layer is not a clever prompt on top of disconnected tools. It needs a source of truth, bounded services, durable telemetry, and a tool surface the agent can actually use.
+                </p>
+              </a>
+              <a class="post-card" href="blog/vcf-91-rebuild-dns-fqdn-registration/">
+                <span class="post-meta">June 2026 · VCF Operations · 8 min read</span>
+                <h2>VCF 9.1 Rebuild: DNS and FQDNs Were the Real Dependency</h2>
+                <p>
+                  A failed VCF 9.1 registration path came down to a basic dependency: the names in the bring-up spec did not resolve exactly as the platform expected.
+                </p>
+              </a>
+              <a class="post-card" href="blog/mcp-tls-encryption-is-not-authorization/">
+                <span class="post-meta">June 2026 · Agentic Operations · Security · 7 min read</span>
+                <h2>MCP TLS Was Only Half the Security</h2>
+                <p>
+                  TLS made the AI tool endpoint safer in transit. It did not answer the harder question: who is allowed to call operational tools in the first place?
+                </p>
+              </a>
+              <a class="post-card" href="blog/the-agent-i-already-had/">
+                <span class="post-meta">June 2026 · Agentic Operations · 8 min read</span>
+                <h2>The Agent I Already Had</h2>
+                <p>
+                  An inbox cleanup story about why agency, execution location, and data boundaries matter more than model intelligence alone.
+                </p>
+              </a>
+              <a class="post-card" href="blog/vcf-9-0-9-1-ip-fqdn-dns-planning/">
+                <span class="post-meta">May 2026 · VCF Operations · 10 min read</span>
+                <h2>VCF 9.0 vs 9.1: IP and DNS Planning for Internal Components</h2>
+                <p>
+                  A practical planning model for the internal components that need IP addresses, FQDNs, forward DNS, and reverse DNS across VCF 9.0 and VCF 9.1.
+                </p>
+              </a>
+              <a class="post-card" href="blog/designing-paif-reference-architecture-tier-3-private-ai/">
+                <span class="post-meta">May 2026 · Private AI Foundation · Part 2 · 12 min read</span>
+                <h2>Designing PAIF: A Reference Architecture for Tier 3 Private AI</h2>
+                <p>
+                  A practical design for private knowledge, local processing, Tier 3 private question answering, Kubernetes-first AI services, and hybrid routing when policy allows.
+                </p>
+              </a>
+            </div>
             </div>
 
             <aside class="side-note">

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Agent Org: Running Infrastructure Work Through Separated AI Roles | Brandon Quantz</title>
+    <meta
+      name="description"
+      content="A working model for AI-assisted engineering that uses separated agent roles, independent review, security gates, and human approval for risky actions."
+    />
+    <link
+      rel="canonical"
+      href="https://theinfrastructureshift.com/blog/agent-org-separated-ai-roles/"
+    />
+    <link rel="stylesheet" href="../../styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <nav class="nav" aria-label="Main navigation">
+          <a class="brand" href="../../">
+            <strong>Brandon Quantz</strong>
+            <span>Product architecture notes</span>
+          </a>
+          <div class="nav-links">
+            <a href="../../">Home</a>
+            <a href="mailto:bquantz@gmail.com">Contact</a>
+          </div>
+        </nav>
+      </header>
+
+      <main>
+        <header class="article-header">
+          <p class="eyebrow"><a href="../../topics/agentic-operations/">Agentic Operations</a></p>
+          <h1>The Agent Org: Running Infrastructure Work Through Separated AI Roles</h1>
+          <p class="article-summary">
+            The safest version of AI operations is not one all-powerful assistant. It is a small operating model: separated roles, independent review, written decisions, and a human gate for irreversible work.
+          </p>
+          <div class="hero-meta">
+            <span>By Brandon Quantz</span>
+            <span>June 2026</span>
+            <span>10 min read</span>
+          </div>
+        </header>
+
+        <article class="article">
+          <h2>The unit of design is not the prompt</h2>
+          <p>Most AI operations discussions start with a single assistant. Give it tools, give it instructions, and hope it behaves. That can work for narrow tasks, but it is a weak model for infrastructure work.</p>
+          <p>Infrastructure changes need separation of duties. The person who writes the change should not be the only person who approves the change. Security should be able to veto. Design review should be different from code review. Risky actions should stop for a human.</p>
+          <p>That organizational pattern still matters when some of the workers are AI agents.</p>
+
+          <h2>Why multiple agents</h2>
+          <p>A single agent has one context window, one set of assumptions, and one tendency to become convinced by its own work. Multiple agents let the system create friction in useful places.</p>
+          <p>One agent can act as the engineer for a bounded repo. A different agent can act as the architect for that domain. A security agent can own policy, threat review, and the final security gate. Independent reviewers from different model families can add a correctness and diversity pass.</p>
+          <p>The point is not theater. The point is to make mistakes collide with different perspectives before they become merged code or live operational changes.</p>
+
+          <h2>Lane boundaries make autonomy possible</h2>
+          <p>The most important rule is not that agents are smart. It is that agents know where they are allowed to act.</p>
+          <p>A builder can change its own branch. It cannot merge to production by itself. A reviewer can file findings. It cannot rewrite the application it is reviewing. A security function can block a risky design. It should not become the feature builder whose work it later approves.</p>
+          <p>Those lane boundaries reduce the amount of permission a human has to hand out. The agent can keep moving inside its lane, while escalation is reserved for cross-lane conflict, credential work, production mutation, deletion, or anything irreversible.</p>
+
+          <h2>Consensus before push</h2>
+          <p>The working flow is spec first, then implementation, then parallel review, then design review, then final security verification.</p>
+          <p>Correctness review asks whether the change behaves as intended. Security review asks whether the change violates trust boundaries, leaks data, mishandles credentials, or creates an unsafe action path. Design review asks whether the change fits the system and whether the tests actually cover the acceptance criteria.</p>
+          <p>Only after those checks clear does a production merge become eligible. Even then, the human gate remains for changes that would mutate production, rotate credentials, delete state, or otherwise create real-world consequences.</p>
+
+          <h2>Written decisions beat memory</h2>
+          <p>Multi-agent work needs durable memory. Not chat memory. Decision memory.</p>
+          <p>Architecture Decision Records, operating models, security standards, and work logs do something prompts cannot do reliably: they give every future agent the same ground truth. If a decision already exists, cite it. If a new decision is being made, write it down.</p>
+          <p>That is what prevents the same argument from replaying every time a new session enters the system. It also gives the human architect a way to audit the direction without reading every line of chat.</p>
+
+          <h2>The honest status of this pattern</h2>
+          <p>This is not full lights-out operations. It is a practical middle state: agents can do real work, review each other, maintain a backlog, and surface a smaller set of human decisions.</p>
+          <p>That middle state is valuable. It turns the human role from constant task driver into architect, risk owner, and final approver for the things that deserve human judgment.</p>
+          <p>The lesson is that AI operations is partly a tooling problem, but mostly an org-design problem. The safer system is not the agent with the biggest permission set. It is the system with the clearest boundaries.</p>
+        </article>
+      </main>
+
+      <footer class="site-footer">
+        <span>© 2026 Brandon Quantz</span>
+      </footer>
+    </div>
+  </body>
+</html>
